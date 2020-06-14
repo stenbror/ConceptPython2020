@@ -97,6 +97,8 @@ module PythonCoreParser =
         |   Name of uint32 * uint32 * Trivia array * string
         |   Number of uint32 * uint32 * Trivia array * string
         |   String of uint32 * uint32 * Trivia array * string array
+        |   EOF of uint32
+        |   Empty
 
 
     type TokenStream = Token list
@@ -249,6 +251,9 @@ module PythonCoreParser =
         |   tok :: rest ->
                 match tok with
                 |   Token.PyColonAssign(a, _ , _ ) ->   a
+
+                |   Token.Name( a, _ , _ , _ ) -> a
+                |   Token.EOF( a ) -> a
                 |   _ ->
                         0ul
         |   _ ->
@@ -582,10 +587,43 @@ module PythonCoreParser =
                 (left, rest)
 
     and parseAtomExpr (stream : TokenStream) =
-        (Node.Empty, stream )
+        let spanStart = getPosition stream
+        let op, rest =  match tryToken stream with
+                        |   Some(Token.PyAwait( _ , _ , _ ), rest) ->
+                                let op = List.head stream
+                                op, rest
+                        |   _ ->
+                                Token.Empty, stream
+        let left, rest2 = parseAtom rest
+        match tryToken rest2 with
+        |   Some(Token.PyLeftParen( _ , _ , _ ), _ )
+        |   Some(Token.PyLeftBracket( _ , _ , _ ), _ )
+        |   Some(Token.PyDot( _ , _ , _ ), _ )
+        |   Some( _ , _ ) when ( match op with | Token.PyAwait( _ , _ , _ ) -> true | _ -> false ) ->
+                let mutable nodes : Node list = []
+                let mutable restRep = rest2
+                while   match tryToken restRep with
+                        |   Some(Token.PyLeftParen( _ , _ , _ ), _ )
+                        |   Some(Token.PyLeftBracket( _ , _ , _ ), _ )
+                        |   Some(Token.PyDot( _ , _ , _ ), _ ) ->
+                                let node, restMore = parseTrailer restRep
+                                nodes <- node :: nodes
+                                restRep <- restMore
+                                true
+                        |   _ ->    false
+                    do ()
+                (Node.AtomExpr(spanStart, getPosition(restRep), op, left, List.toArray(List.rev nodes)), restRep)
+        |   _ ->
+                left, rest2
 
     and parseAtom (stream : TokenStream) =
-        (Node.Empty, stream )
+        let spanStart = getPosition stream
+        match tryToken stream with
+        |   Some(Token.Name( _ , _ , _ , _ ), rest) ->
+                let op = List.head stream
+                (Node.Name(spanStart, getPosition(rest), op), rest)
+        |   _ ->
+                raise (SyntaxError(List.head stream, "Expecting literal name, number, string etc!"))
 
     and parseTestListComp (stream : TokenStream) =
         (Node.Empty, stream )
@@ -793,7 +831,7 @@ module PythonCoreParser =
     let main argv =
         printfn "Hello World from F#!"
 
-
-        let a, b = [ Token.PyColonAssign(3ul, 5ul, [||]); ] |> parseNamedExpr
-        //let a, b = [ Token.Name(0ul, 2ul, [||], "a"); Token.PyColonAssign(3ul, 5ul, [||]); Token.Name(6ul, 8ul, [| |], "b"); ] |> parseNamedExpr
+        let a, b = [ Token.Name(0ul, 2ul, [||], "a"); Token.PyColonAssign(3ul, 5ul, [||]); Token.Name(6ul, 8ul, [| |], "b"); Token.EOF(8ul) ] |> parseNamedExpr
+        printfn "%O" a
+        System.Console.ReadKey() |> ignore
         0 // return an integer exit code
