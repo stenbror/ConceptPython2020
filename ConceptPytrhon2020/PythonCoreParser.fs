@@ -139,12 +139,12 @@ module PythonCoreParser =
         |   Power of uint32 * uint32 * Node * Token * Node
         |   AtomExpr of uint32 * uint32 * Token * Node * Node array
         |   Name of uint32 * uint32 * Token
-        |   Number of uint32 * uint32 * string
-        |   String of uint32 * uint32 * string array
-        |   None of uint32 * uint32
-        |   True of uint32 * uint32
-        |   False of uint32 * uint32
-        |   Elipsis of uint32 * uint32
+        |   Number of uint32 * uint32 * Token
+        |   String of uint32 * uint32 * Token array
+        |   None of uint32 * uint32 * Token
+        |   True of uint32 * uint32 * Token
+        |   False of uint32 * uint32 * Token
+        |   Elipsis of uint32 * uint32 * Token
         |   TestListComp of uint32 * uint32 * Node array * Token array
         |   Call of uint32 * uint32 * Token * Node * Token
         |   Index of uint32 * uint32 * Token * Node * Token
@@ -253,6 +253,7 @@ module PythonCoreParser =
                 |   Token.PyColonAssign(a, _ , _ ) ->   a
 
                 |   Token.Name( a, _ , _ , _ ) -> a
+                |   Token.Number( a, _ , _ , _ ) -> a
                 |   Token.EOF( a ) -> a
                 |   _ ->
                         0ul
@@ -622,6 +623,32 @@ module PythonCoreParser =
         |   Some(Token.Name( _ , _ , _ , _ ), rest) ->
                 let op = List.head stream
                 (Node.Name(spanStart, getPosition(rest), op), rest)
+        |   Some(Token.Number( _ , _ , _ , _ ), rest) ->
+                let op = List.head stream
+                (Node.Number(spanStart, getPosition(rest), op), rest)
+        |   Some(Token.String( _ , _ , _ , _ ), _ ) ->
+                let mutable restAgain = stream
+                let mutable nodes : Token list = []
+                while   match tryToken restAgain with
+                        |   Some(Token.String( _ , _ , _ , _ ), restNow) ->
+                                nodes <- List.head restAgain :: nodes
+                                restAgain <- restNow
+                                true
+                        |   _ -> false
+                    do ()
+                (Node.String(spanStart, getPosition(restAgain), List.toArray(List.rev nodes)), restAgain)
+        |   Some(Token.PyNone( _ , _ , _ ), rest) ->
+                let op = List.head stream
+                (Node.None(spanStart, getPosition(rest), op), rest)
+        |   Some(Token.PyTrue( _ , _ , _ ), rest) ->
+                let op = List.head stream
+                (Node.True(spanStart, getPosition(rest), op), rest)
+        |   Some(Token.PyFalse( _ , _ , _ ), rest) ->
+                let op = List.head stream
+                (Node.False(spanStart, getPosition(rest), op), rest)
+        |   Some(Token.PyElipsis( _ , _ , _ ), rest) ->
+                let op = List.head stream
+                (Node.Elipsis(spanStart, getPosition(rest), op), rest)
         |   _ ->
                 raise (SyntaxError(List.head stream, "Expecting literal name, number, string etc!"))
 

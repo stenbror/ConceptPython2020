@@ -16,7 +16,7 @@ module TestPythonCoreParser =
                                 Token.EOF(8ul) 
                             ] |> parseNamedExpr
 
-        Assert.Equal (rest, [| Token.EOF(8ul) |]; )
+        Assert.Equal ( [| Token.EOF(8ul) |], rest )
         Assert.Equal (
                         Node.NamedExpr(0ul, 8ul, 
                             Node.Name(0ul, 3ul, Token.Name(0ul, 2ul, [||], "ab")),
