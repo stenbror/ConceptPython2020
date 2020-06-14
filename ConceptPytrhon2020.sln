@@ -1,0 +1,31 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 16
+VisualStudioVersion = 16.0.30204.135
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "ConceptPytrhon2020", "ConceptPytrhon2020\ConceptPytrhon2020.fsproj", "{93446B6D-05FC-44B9-9B61-61B18A043A12}"
+EndProject
+Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "TestConceptPython2020", "TestConceptPython2020\TestConceptPython2020.fsproj", "{BD4A97E0-F262-4E8C-A44F-5DE548417940}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{93446B6D-05FC-44B9-9B61-61B18A043A12}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{93446B6D-05FC-44B9-9B61-61B18A043A12}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{93446B6D-05FC-44B9-9B61-61B18A043A12}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{93446B6D-05FC-44B9-9B61-61B18A043A12}.Release|Any CPU.Build.0 = Release|Any CPU
+		{BD4A97E0-F262-4E8C-A44F-5DE548417940}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{BD4A97E0-F262-4E8C-A44F-5DE548417940}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{BD4A97E0-F262-4E8C-A44F-5DE548417940}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{BD4A97E0-F262-4E8C-A44F-5DE548417940}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {039D49D5-6732-464F-9AF5-C422A606FA44}
+	EndGlobalSection
+EndGlobal
