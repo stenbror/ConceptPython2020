@@ -4,6 +4,10 @@ namespace PythonCoreFramework.Runtime
 module PythonCoreParser =
 
     type Trivia =
+        |   WhiteSpace of uint32 * uint32 * string
+        |   Newline of uint32 * uint32 * char * char
+        |   Comment of uint32 * uint32 * string
+        |   LineContinuation of uint32 * uint32 * char * char * char
         |   Empty
 
     
