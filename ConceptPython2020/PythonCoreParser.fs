@@ -62,7 +62,7 @@ module PythonCoreParser =
         |   PyDiv of uint32 * uint32 * Trivia array
         |   PyDivAssign of uint32 * uint32 * Trivia array
         |   PyFloorDiv of uint32 * uint32 * Trivia array
-        |   PyFlooeDivAssign of uint32 * uint32 * Trivia array
+        |   PyFloorDivAssign of uint32 * uint32 * Trivia array
         |   PyModulo of uint32 * uint32 * Trivia array
         |   PyModuloAssign of uint32 * uint32 * Trivia array
         |   PyMatrice of uint32 * uint32 * Trivia array
@@ -255,10 +255,91 @@ module PythonCoreParser =
         |   tok :: rest ->
                 match tok with
                 |   Token.PyColonAssign(a, _ , _ ) ->   a
-
-                |   Token.Name( a, _ , _ , _ ) -> a
-                |   Token.Number( a, _ , _ , _ ) -> a
-                |   Token.EOF( a ) -> a
+                |   Token.PyPlus(a, _, _ ) -> a 
+                |   Token.PyMinus(a, _, _ ) -> a 
+                |   Token.PyMul(a, _, _ ) -> a 
+                |   Token.PyPower(a, _, _ ) -> a 
+                |   Token.PyDiv(a, _, _ ) -> a 
+                |   Token.PyFloorDiv(a, _, _ ) -> a 
+                |   Token.PyModulo(a, _, _ ) -> a 
+                |   Token.PyMatrice(a, _, _ ) -> a 
+                |   Token.PyShiftLeft(a, _, _ ) -> a 
+                |   Token.PyShiftRight(a, _, _ ) -> a 
+                |   Token.PyBitAnd(a, _, _ ) -> a 
+                |   Token.PyBitOr(a, _, _ ) -> a 
+                |   Token.PyBitXor(a, _, _ ) -> a 
+                |   Token.PyBitInvert(a, _, _ ) -> a 
+                |   Token.PyLess(a, _, _ ) -> a 
+                |   Token.PyGreater(a, _, _ ) -> a 
+                |   Token.PyLessEqual(a, _, _ ) -> a 
+                |   Token.PyGreaterEqual(a, _, _ ) -> a 
+                |   Token.PyEqual(a, _, _ ) -> a 
+                |   Token.PyNotEqual(a, _, _ ) -> a 
+                |   Token.PyLeftParen(a, _, _ ) -> a 
+                |   Token.PyLeftBracket(a, _, _ ) -> a 
+                |   Token.PyLeftCurly(a, _, _ ) -> a 
+                |   Token.PyRightParen(a, _, _ ) -> a 
+                |   Token.PyRightBracket(a, _, _ ) -> a 
+                |   Token.PyRightCurly(a, _, _ ) -> a 
+                |   Token.PyComma(a, _, _ ) -> a 
+                |   Token.PyColon(a, _, _ ) -> a 
+                |   Token.PyDot(a, _, _ ) -> a 
+                |   Token.PySemiColon(a, _, _ ) -> a 
+                |   Token.PyAssign(a, _, _ ) -> a 
+                |   Token.PyArrow(a, _, _ ) -> a 
+                |   Token.PyPlusAssign(a, _, _ ) -> a 
+                |   Token.PyMinusAssign(a, _, _ ) -> a 
+                |   Token.PyMulAssign(a, _, _ ) -> a 
+                |   Token.PyDivAssign(a, _, _ ) -> a 
+                |   Token.PyFloorDivAssign(a, _, _ ) -> a 
+                |   Token.PyModuloAssign(a, _, _ ) -> a 
+                |   Token.PyMatriceAssign(a, _, _ ) -> a 
+                |   Token.PyBitAndAssign(a, _, _ ) -> a 
+                |   Token.PyBitOrAssign(a, _, _ ) -> a 
+                |   Token.PyBitXorAssign(a, _, _ ) -> a 
+                |   Token.PyShiftLeftAssign(a, _, _ ) -> a 
+                |   Token.PyShiftRightAssign(a, _, _ ) -> a 
+                |   Token.PyPowerAssign(a, _, _ ) -> a 
+                |   Token.PyElipsis(a, _, _ ) -> a 
+                |   Token.PyFalse(a, _, _ ) -> a 
+                |   Token.PyNone(a, _, _ ) -> a 
+                |   Token.PyTrue(a, _, _ ) -> a 
+                |   Token.PyAs(a, _, _ ) -> a 
+                |   Token.PyAnd(a, _, _ ) -> a 
+                |   Token.PyAssert(a, _, _ ) -> a 
+                |   Token.PyAwait(a, _, _ ) -> a 
+                |   Token.PyAsync(a, _, _ ) -> a 
+                |   Token.PyBreak(a, _, _ ) -> a 
+                |   Token.PyClass(a, _, _ ) -> a 
+                |   Token.PyContinue(a, _, _ ) -> a 
+                |   Token.PyDef(a, _, _ ) -> a 
+                |   Token.PyDel(a, _, _ ) -> a 
+                |   Token.PyElif(a, _, _ ) -> a 
+                |   Token.PyElse(a, _, _ ) -> a 
+                |   Token.PyExcept(a, _, _ ) -> a 
+                |   Token.PyFinally(a, _, _ ) -> a 
+                |   Token.PyFor(a, _, _ ) -> a 
+                |   Token.PyFrom(a, _, _ ) -> a 
+                |   Token.PyGlobal(a, _, _ ) -> a 
+                |   Token.PyIf(a, _, _ ) -> a 
+                |   Token.PyImport(a, _, _ ) -> a 
+                |   Token.PyIn(a, _, _ ) -> a 
+                |   Token.PyIs(a, _, _ ) -> a 
+                |   Token.PyLambda(a, _, _ ) -> a 
+                |   Token.PyNonlocal(a, _, _ ) -> a 
+                |   Token.PyNot(a, _, _ ) -> a 
+                |   Token.PyOr(a, _, _ ) -> a 
+                |   Token.PyPass(a, _, _ ) -> a 
+                |   Token.PyRaise(a, _, _ ) -> a 
+                |   Token.PyReturn(a, _, _ ) -> a 
+                |   Token.PyTry(a, _, _ ) -> a 
+                |   Token.PyWhile(a, _, _ ) -> a 
+                |   Token.PyWith(a, _, _ ) -> a 
+                |   Token.PyYield(a, _, _ ) -> a 
+                |   Token.Name(a, _ , _ , _ ) -> a
+                |   Token.Number(a, _ , _ , _ ) -> a
+                |   Token.String(a , _ , _ , _ ) -> a
+                |   Token.EOF(a) -> a
                 |   _ ->
                         0ul
         |   _ ->
