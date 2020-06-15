@@ -20,7 +20,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\ConceptPytrhon2020\ConceptPython2020.fsproj" />
+    <ProjectReference Include="..\ConceptPython2020\ConceptPython2020.fsproj" />
   </ItemGroup>
 
 </Project>
