@@ -750,7 +750,36 @@ module PythonCoreParser =
         (Node.Empty, stream )
 
     and parseExprList (stream : TokenStream) =
-        (Node.Empty, stream )
+        let spanStart = getPosition stream
+        let mutable nodes : Node List = []
+        let mutable separators : Token List = []
+        let mutable rest = stream
+        match tryToken rest with
+        |   Some(Token.PyMul( _ , _ , _ ), _ ) ->
+                let node, rest2 = parseStarExpr rest
+                nodes <- node :: nodes
+                rest <- rest2
+        |   Some( _ , _ ) ->
+                let node, rest2 = parseExpr rest
+                nodes <- node :: nodes
+                rest <- rest2
+        |   _ ->
+                raise ( SyntaxError(List.head rest, "Expression list needs ar least one expression!") )
+        while   match tryToken rest with
+                |   Some(Token.PyMul( _ , _ , _ ), _ ) ->
+                        let node, rest2 = parseStarExpr rest
+                        nodes <- node :: nodes
+                        rest <- rest2
+                        true
+                |   Some( _ , _ ) ->
+                        let node, rest2 = parseExpr rest
+                        nodes <- node :: nodes
+                        rest <- rest2
+                        true
+                |   _ ->
+                        false
+            do ()
+        (Node.ExprList(spanStart, getPosition rest, List.toArray(List.rev nodes), List.toArray(List.rev separators)), rest )
 
     and parseTestList (stream : TokenStream) =
         (Node.Empty, stream )
