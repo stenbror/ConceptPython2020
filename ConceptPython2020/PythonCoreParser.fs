@@ -744,7 +744,28 @@ module PythonCoreParser =
         (Node.Empty, stream )
 
     and parseSubscriptList (stream : TokenStream) =
-        (Node.Empty, stream )
+        let spanStart = getPosition stream
+        let mutable nodes : Node list = []
+        let mutable separators : Token List = []
+        let mutable rest = stream
+        let node, rest2 = parseSubscript rest
+        nodes <- node :: nodes
+        rest <- rest2
+        while   match tryToken rest with
+                |   Some(Token.PyComma( _ , _ , _ ), rest3 ) ->
+                        separators <- List.head rest :: separators
+                        rest <- rest3
+                        match tryToken rest with
+                        |   Some(Token.PyRightBracket( _ , _ , _ ), _ ) ->
+                                false
+                        |   _ ->
+                                let node2, rest4 = parseSubscript rest
+                                nodes <- node2 :: nodes
+                                rest <- rest4
+                                true
+                |   _ ->    false
+            do ()
+        (Node.SubscriptList(spanStart, getPosition rest, List.toArray(List.rev nodes), List.toArray(List.rev separators)), rest )
 
     and parseSubscript (stream : TokenStream) =
         (Node.Empty, stream )
