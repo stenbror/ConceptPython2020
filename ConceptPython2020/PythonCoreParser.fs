@@ -766,23 +766,49 @@ module PythonCoreParser =
         |   _ ->
                 raise ( SyntaxError(List.head rest, "Expression list needs ar least one expression!") )
         while   match tryToken rest with
-                |   Some(Token.PyMul( _ , _ , _ ), _ ) ->
-                        let node, rest2 = parseStarExpr rest
-                        nodes <- node :: nodes
+                |   Some(Token.PyComma( _ , _ , _ ), rest2) ->
+                        separators <- List.head rest :: separators
                         rest <- rest2
-                        true
-                |   Some( _ , _ ) ->
-                        let node, rest2 = parseExpr rest
-                        nodes <- node :: nodes
-                        rest <- rest2
-                        true
-                |   _ ->
-                        false
+                        match tryToken rest with
+                        |   Some(Token.PyIn( _ , _ , _ ), _ ) ->
+                                false
+                        |   Some(Token.PyMul( _ , _ , _ ), _ ) ->
+                                let node2, rest3 = parseStarExpr rest
+                                nodes <- node2 :: nodes
+                                rest <- rest3
+                                true
+                        |   _ ->
+                                let node2, rest3 = parseExpr rest
+                                nodes <- node2 :: nodes
+                                rest <- rest3
+                                true
+                |   _ -> false
             do ()
         (Node.ExprList(spanStart, getPosition rest, List.toArray(List.rev nodes), List.toArray(List.rev separators)), rest )
 
     and parseTestList (stream : TokenStream) =
-        (Node.Empty, stream )
+        let spanStart = getPosition stream
+        let mutable nodes : Node List = []
+        let mutable separators : Token List = []
+        let mutable node, rest = parseTest stream
+        nodes <- node :: nodes
+        while   match tryToken rest with
+                |   Some(Token.PyComma( _ , _ , _ ), rest2 ) ->
+                        separators <- List.head rest :: separators
+                        rest <- rest2
+                        match tryToken rest with
+                        |   Some(Token.Newline( _ , _ , _ ), _ ) ->
+                                false
+                        |   Some(Token.PySemiColon( _ , _ , _ ), _ ) ->
+                                false
+                        |   _ ->
+                                let node2, rest3 = parseTest rest
+                                nodes <- node2 :: nodes
+                                rest <- rest3
+                                true
+                |   _ -> false
+            do ()
+        (Node.TestList(spanStart, getPosition rest, List.toArray(List.rev nodes), List.toArray(List.rev separators)), rest )
 
     and parseDictorSetMaker (stream : TokenStream) =
         (Node.Empty, stream )
