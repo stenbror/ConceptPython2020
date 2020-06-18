@@ -741,7 +741,44 @@ module PythonCoreParser =
         (Node.Empty, stream )
 
     and parseTrailer (stream : TokenStream) =
-        (Node.Empty, stream )
+        let spanStart = getPosition stream
+        match tryToken stream with
+        |   Some(Token.PyLeftParen( _ , _ , _ ), rest ) ->
+                let op1 = List.head stream
+                let node, rest2 =   match tryToken rest with
+                                    |   Some(Token.PyRightParen( _ , _ , _ ), _ ) ->
+                                            Node.Empty, rest
+                                    |   _ ->
+                                            parseArgList rest
+                match tryToken rest2 with
+                |   Some(Token.PyRightParen( _ , _ , _ ), rest3 ) ->
+                        let op2 = List.head rest2
+                        (Node.Call(spanStart, getPosition(rest3), op1, node, op2), rest3)
+                |   _ ->
+                    raise (SyntaxError(List.head rest2, "Missing ')' in call expression!"))
+        |   Some(Token.PyLeftBracket( _ , _ , _ ), rest ) ->
+                let op1 = List.head stream
+                let node, rest2 =   match tryToken rest with
+                                    |   Some(Token.PyRightBracket( _ , _ , _ ), _ ) ->
+                                            Node.Empty, rest
+                                    |   _ ->
+                                            parseSubscriptList rest
+                match tryToken rest2 with
+                |   Some(Token.PyRightParen( _ , _ , _ ), rest3 ) ->
+                        let op2 = List.head rest2
+                        (Node.Index(spanStart, getPosition(rest3), op1, node, op2), rest3)
+                |   _ ->
+                    raise (SyntaxError(List.head rest2, "Missing ']' in index expression!"))
+        |   Some(Token.PyDot( _ , _ , _ ), rest ) ->
+                let op1 = List.head stream
+                match tryToken rest with
+                |   Some(Token.Name( _ , _ , _ , _ ), rest2 ) ->
+                        let op2 = List.head rest
+                        (Node.DotName(spanStart, getPosition(rest2), op1, op2), rest2)
+                |   _ ->
+                        raise (SyntaxError(List.head rest, "Expecting name literal after '.'"))
+        |   _ ->  
+            raise (SyntaxError(List.head stream, "Expecting '(', '[', '.' in trailer expression!"))
 
     and parseSubscriptList (stream : TokenStream) =
         let spanStart = getPosition stream
