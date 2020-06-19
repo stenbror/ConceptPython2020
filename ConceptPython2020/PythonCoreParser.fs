@@ -738,7 +738,47 @@ module PythonCoreParser =
                 raise (SyntaxError(List.head stream, "Expecting literal name, number, string etc!"))
 
     and parseTestListComp (stream : TokenStream) =
-        (Node.Empty, stream )
+        let spanStart = getPosition stream
+        let mutable nodes : Node List = []
+        let mutable separators : Token List = []
+        let mutable rest = stream
+        match tryToken rest with
+        |   Some(Token.PyMul( _ , _ , _ ), _ ) ->
+                let node, rest2 = parseStarExpr rest
+                nodes <- node :: nodes
+                rest <- rest2
+        |   Some( _ , _ ) ->
+                let node, rest2 = parseNamedExpr rest
+                nodes <- node :: nodes
+                rest <- rest2
+        |   _ ->
+                raise ( SyntaxError(List.head rest, "Expression list needs ar least one expression!") )
+        match tryToken rest with
+        |   Some(Token.PyFor( _ , _ , _ ), _ ) ->
+                let node2, rest2 = parseCompFor rest
+                nodes <- node2 :: nodes
+                rest <- rest2
+        |   _ ->
+               while   match tryToken rest with
+                       |   Some(Token.PyComma( _ , _ , _ ), rest2) ->
+                               separators <- List.head rest :: separators
+                               rest <- rest2
+                               match tryToken rest with
+                               |   Some(Token.PyIn( _ , _ , _ ), _ ) ->
+                                       false
+                               |   Some(Token.PyMul( _ , _ , _ ), _ ) ->
+                                       let node2, rest3 = parseStarExpr rest
+                                       nodes <- node2 :: nodes
+                                       rest <- rest3
+                                       true
+                               |   _ ->
+                                       let node2, rest3 = parseNamedExpr rest
+                                       nodes <- node2 :: nodes
+                                       rest <- rest3
+                                       true
+                       |   _ -> false
+                   do ()
+        (Node.TestListComp(spanStart, getPosition rest, List.toArray(List.rev nodes), List.toArray(List.rev separators)), rest )
 
     and parseTrailer (stream : TokenStream) =
         let spanStart = getPosition stream
