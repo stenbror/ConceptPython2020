@@ -845,7 +845,46 @@ module PythonCoreParser =
         (Node.SubscriptList(spanStart, getPosition rest, List.toArray(List.rev nodes), List.toArray(List.rev separators)), rest )
 
     and parseSubscript (stream : TokenStream) =
-        (Node.Empty, stream )
+        let spanStart = getPosition stream
+        let mutable rest = stream
+        let left =  match tryToken rest with
+                    |   Some(Token.PyColon( _ , _ , _ ), _ ) ->
+                            Node.Empty
+                    |   Some(Token.PyComma( _ , _ , _ ), _ )
+                    |   Some(Token.PyRightBracket( _ , _ , _ ), _ ) ->
+                            raise(SyntaxError(List.head rest, "Missing expression before ':' in subscript!"))
+                    |   _ ->
+                            let a, b = parseTest rest
+                            rest <- b
+                            a
+        match tryToken rest with
+        |   Some(Token.PyColon( _ , _ , _ ), rest2 ) ->
+                let op1 = List.head rest
+                rest <- rest2
+                let right = match tryToken rest with
+                            |   Some(Token.PyColon( _ , _ , _ ), _ )
+                            |   Some(Token.PyComma( _ , _ , _ ), _ )
+                            |   Some(Token.PyRightBracket( _ , _ , _ ), _ ) ->
+                                    Node.Empty
+                            |   _ ->
+                                    let a, b = parseTest rest
+                                    rest <- b
+                                    a
+                match tryToken rest with
+                |   Some(Token.PyColon( _ , _ , _ ), rest2 ) ->
+                        let op2 = List.head rest
+                        match tryToken rest2 with
+                        |   Some(Token.PyComma( _ , _ , _ ), _ )
+                        |   Some(Token.PyRightBracket( _ , _ , _ ), _ ) ->
+                                (Node.Subscript(spanStart, getPosition(rest), left, op1, right, op2, Node.Empty), rest )
+                        |   _ ->
+                                let a, b = parseTest rest2
+                                rest <- b
+                                (Node.Subscript(spanStart, getPosition(rest), left, op1, right, op2, a), rest )
+                |   _ ->
+                        (Node.Subscript(spanStart, getPosition(rest), left, op1, right, Token.Empty, Node.Empty), rest )
+        |   _ ->
+                (Node.Subscript(spanStart, getPosition(rest), left, Token.Empty, Node.Empty, Token.Empty, Node.Empty), rest )
 
     and parseExprList (stream : TokenStream) =
         let spanStart = getPosition stream
