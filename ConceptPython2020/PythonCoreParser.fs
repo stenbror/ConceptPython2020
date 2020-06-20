@@ -951,7 +951,26 @@ module PythonCoreParser =
         (Node.Empty, stream )
 
     and parseArgList (stream : TokenStream) =
-        (Node.Empty, stream )
+        let spanStart = getPosition stream
+        let mutable nodes : Node List = []
+        let mutable separators : Token List = []
+        let mutable node, rest = parseArgument stream
+        nodes <- node :: nodes
+        while   match tryToken rest with
+                |   Some(Token.PyComma( _ , _ , _ ), rest2 ) ->
+                        separators <- List.head rest :: separators
+                        rest <- rest2
+                        match tryToken rest with
+                        |   Some(Token.PyRightParen( _ , _ , _ ), _ ) ->
+                                false
+                        |   _ ->
+                                let node2, rest3 = parseArgument rest
+                                nodes <- node2 :: nodes
+                                rest <- rest3
+                                true
+                |   _ -> false
+            do ()
+        (Node.ArgList(spanStart, getPosition rest, List.toArray(List.rev nodes), List.toArray(List.rev separators)), rest )
 
     and parseArgument (stream : TokenStream) =
         (Node.Empty, stream )
