@@ -168,6 +168,8 @@ module PythonCoreParser =
         |   ClassDef of uint32 * uint32 * Token * Token * Token * Node * Token * Token * Node
         |   ArgList of uint32 * uint32 * Node array * Token array
         |   Argument of uint32 * uint32 * Node * Token * Node
+        |   StarArgument of uint32 * uint32 * Token * Node
+        |   PowerArgument of uint32 * uint32 * Token * Node
         |   SyncCompFor of uint32 * uint32 * Token * Node * Token * Node * Node
         |   CompFor of uint32 * uint32 * Token * Node
         |   CompIf of uint32 * uint32 * Token * Node * Node
@@ -973,7 +975,36 @@ module PythonCoreParser =
         (Node.ArgList(spanStart, getPosition rest, List.toArray(List.rev nodes), List.toArray(List.rev separators)), rest )
 
     and parseArgument (stream : TokenStream) =
-        (Node.Empty, stream )
+        let spanStart = getPosition stream
+        let left, rest =    match tryToken stream with
+                            |   Some(Token.PyMul( _ , _ , _ ), rest2 ) ->
+                                    let op = List.head stream
+                                    let node, rest3 = parseTest rest2
+                                    (Node.StarArgument(spanStart, getPosition(rest2), op, node), rest3)
+                            |   Some(Token.PyPower( _ , _ , _ ), rest2) ->
+                                    let op = List.head stream
+                                    let node, rest3 = parseTest rest2
+                                    (Node.PowerArgument(spanStart, getPosition(rest2), op, node), rest3)
+                            |   Some(Token.Name( _ , _ , _ , _ ) , rest2 )   ->
+                                    (Node.Name(spanStart, getPosition(rest2), List.head stream), rest2)
+                            |   _ ->
+                                    raise (SyntaxError(List.head stream, "Missing argument!"))
+        match tryToken rest with
+        |   Some(Token.PyFor( _ , _ , _ ), _ ) ->
+                let a, b = parseCompFor rest
+                (Node.Argument(spanStart, getPosition(rest), left, Token.Empty, a), b)
+        |   Some(Token.PyColonAssign( _ , _ , _ ), rest2 ) ->
+                let op = List.head rest
+                let a, b = parseTest rest2
+                (Node.Argument(spanStart, getPosition(rest), left, op, a), b)
+        |   Some(Token.PyAssign( _ , _ , _ ), rest2 ) ->
+                let op = List.head rest
+                let a, b = parseTest rest2
+                (Node.Argument(spanStart, getPosition(rest), left, op, a), b)
+        |   Some( _ , _ ) ->
+                (Node.Argument(spanStart, getPosition(rest), left, Token.Empty, Node.Empty), rest)
+        |   _ ->
+                raise (SyntaxError(List.head rest, "Unexpected end of Token stream!"))
 
     and parseCompIter (stream : TokenStream) =
         (Node.Empty, stream )
