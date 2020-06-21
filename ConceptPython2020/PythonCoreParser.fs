@@ -1017,7 +1017,29 @@ module PythonCoreParser =
                 raise (SyntaxError(List.head stream, "Expecting 'async', 'for' or 'if' in comprehensive expression!"))
 
     and parseSyncCompFor (stream : TokenStream) =
-        (Node.Empty, stream )
+        let spanStart = getPosition stream
+        match tryToken stream with
+        |   Some(Token.PyFor( _ , _ , _ ), rest ) ->
+                let op1 = List.head stream
+                let left, rest2 = parseExprList rest
+                match tryToken rest2 with
+                |   Some(Token.PyIn( _ , _ , _ ), rest3 ) ->
+                        let op2 = List.head rest2
+                        let right, rest4 = parseOrTest rest3
+                        match tryToken rest4 with
+                        |   Some(Token.PyIf( _ , _ , _ ), _ )
+                        |   Some(Token.PyAsync( _ , _ , _ ), _ )
+                        |   Some(Token.PyFor( _ , _ , _ ), _ ) ->
+                                let next, rest5 = parseCompIter rest4
+                                (Node.SyncCompFor(spanStart, getPosition(rest4), op1, left, op2, right, next), rest5)
+                        |   Some( _ , _ ) ->
+                                (Node.SyncCompFor(spanStart, getPosition(rest4), op1, left, op2, right, Node.Empty), rest4)
+                        |   _ ->
+                                raise (SyntaxError(List.head rest4, "Empty token stram!"))
+                |   _ ->
+                        raise (SyntaxError(List.head rest2, "Missing 'in' in comprehension expression!"))
+        |   _ ->
+                raise (SyntaxError(List.head stream, "Missing 'for' in comprehension expression!"))
 
     and parseCompFor (stream : TokenStream) =
         (Node.Empty, stream )
