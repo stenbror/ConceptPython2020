@@ -736,8 +736,58 @@ module PythonCoreParser =
         |   Some(Token.PyElipsis( _ , _ , _ ), rest) ->
                 let op = List.head stream
                 (Node.Elipsis(spanStart, getPosition(rest), op), rest)
-        |   _ ->
+        |   Some(Token.PyLeftParen( _ , _ , _ ), rest) ->
+                let op1 = List.head stream
+                match tryToken rest with
+                |   Some(Token.PyRightParen( _ , _ , _ ), rest2 ) ->
+                        let op2 = List.head rest
+                        (Node.Tuple(spanStart, getPosition(rest2), op1, Node.Empty, op2), rest2)
+                |   Some(Token.PyYield( _ , _ , _ ), rest2 ) ->
+                        let node, rest3 = parseYield rest
+                        match tryToken rest3 with
+                        |   Some(Token.PyRightParen( _ , _ , _ ), rest4 ) ->
+                                let op2 = List.head rest3
+                                (Node.Tuple(spanStart, getPosition(rest2), op1, node, op2), rest4 )
+                        |   Some ( _ , _ ) ->
+                                raise (SyntaxError(List.head rest3, "Missing ')' in atomic value!"))
+                        |   _ ->
+                                raise (SyntaxError(List.head rest3, "Empty token stream!"))
+                |   Some( _ , _ ) ->
+                        let node, rest5 = parseTestListComp rest
+                        match tryToken rest5 with
+                        |   Some(Token.PyRightParen( _ , _ , _ ), rest4 ) ->
+                            let op2 = List.head rest5
+                            (Node.Tuple(spanStart, getPosition(rest), op1, node, op2), rest4 )
+                        |   Some ( _ , _ ) ->
+                            raise (SyntaxError(List.head rest, "Missing ')' in atomic value!"))
+                        |   _ ->
+                            raise (SyntaxError(List.head rest, "Empty token stream!"))
+                |   _ ->
+                        raise (SyntaxError(List.head rest, "Empty token stream!"))
+        |   Some(Token.PyLeftBracket( _ , _ , _ ), rest) ->
+                let op1 = List.head stream
+                match tryToken rest with
+                |   Some(Token.PyRightBracket( _ , _ , _ ), rest2 ) ->
+                        let op2 = List.head rest
+                        (Node.Tuple(spanStart, getPosition(rest2), op1, Node.Empty, op2), rest2)
+                |   Some( _ , _ ) ->
+                        let node, rest5 = parseTestListComp rest
+                        match tryToken rest5 with
+                        |   Some(Token.PyRightBracket( _ , _ , _ ), rest4 ) ->
+                            let op2 = List.head rest5
+                            (Node.Tuple(spanStart, getPosition(rest), op1, node, op2), rest4 )
+                        |   Some ( _ , _ ) ->
+                            raise (SyntaxError(List.head rest, "Missing ']' in atomic value!"))
+                        |   _ ->
+                            raise (SyntaxError(List.head rest, "Empty token stream!"))
+                |   _ ->
+                        raise (SyntaxError(List.head rest, "Empty token stream!"))
+        |   Some(Token.PyLeftCurly( _ , _ , _ ), rest) ->
+                raise (System.Exception())
+        |   Some( _ , _ ) ->
                 raise (SyntaxError(List.head stream, "Expecting literal name, number, string etc!"))
+        |   _ ->
+                raise (SyntaxError(List.head stream, "Empty token stream!"))
 
     and parseTestListComp (stream : TokenStream) =
         let spanStart = getPosition stream
