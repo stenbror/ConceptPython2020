@@ -1058,7 +1058,23 @@ module PythonCoreParser =
                 (Node.CompFor(spanStart, getPosition(rest3), op, node ), rest3)
 
     and parseCompIf (stream : TokenStream) =
-        (Node.Empty, stream )
+        let spanStart = getPosition stream
+        match tryToken stream with
+        |   Some(Token.PyIf( _ , _ , _ ), rest ) ->
+                let op = List.head stream
+                let node, rest2 = parseTestNoCond rest
+                match tryToken rest2 with
+                |   Some(Token.PyIf( _ , _ , _ ), rest3 )
+                |   Some(Token.PyAsync( _ , _ , _ ), rest3 )
+                |   Some(Token.PyFor( _ , _ , _ ), rest3 ) ->
+                        let next, rest4 = parseCompIter rest3
+                        (Node.CompIf(spanStart, getPosition(rest4), op, node, next), rest4)
+                |   Some( _ , _ ) ->
+                        (Node.CompIf(spanStart, getPosition(rest2), op, node, Node.Empty), rest2)
+                |   _ ->
+                        raise (SyntaxError(List.head rest2, "Empty token stream!"))
+        |   _ ->
+                raise (SyntaxError(List.head stream, "Missing 'if' in comprehension expression!"))
 
     and parseYield (stream : TokenStream) =
         (Node.Empty, stream )
