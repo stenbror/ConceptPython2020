@@ -1042,7 +1042,20 @@ module PythonCoreParser =
                 raise (SyntaxError(List.head stream, "Missing 'for' in comprehension expression!"))
 
     and parseCompFor (stream : TokenStream) =
-        (Node.Empty, stream )
+        let spanStart = getPosition stream
+        let op, rest =  match tryToken stream with
+                        |   Some(Token.PyAsync( _ , _ , _ ), rest2 ) ->
+                                List.head stream, rest2
+                        |   Some( _ , _ ) ->
+                                Token.Empty, stream
+                        |   _ ->
+                                raise (SyntaxError(List.head stream, "Empty token stream!"))
+        let node, rest3 = parseSyncCompFor rest
+        match op with
+        |   Token.Empty ->
+                (node, rest3)
+        |   _ ->
+                (Node.CompFor(spanStart, getPosition(rest3), op, node ), rest3)
 
     and parseCompIf (stream : TokenStream) =
         (Node.Empty, stream )
