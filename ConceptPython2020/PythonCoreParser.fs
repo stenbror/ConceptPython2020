@@ -1007,7 +1007,14 @@ module PythonCoreParser =
                 raise (SyntaxError(List.head rest, "Unexpected end of Token stream!"))
 
     and parseCompIter (stream : TokenStream) =
-        (Node.Empty, stream )
+        match tryToken stream with
+        |   Some(Token.PyAwait( _ , _ , _ ), _ )
+        |   Some(Token.PyFor( _ , _ , _ ), _ ) ->
+                parseCompFor stream
+        |   Some(Token.PyIf( _ , _ , _ ), _ ) ->
+                parseCompIf stream
+        |   _ ->
+                raise (SyntaxError(List.head stream, "Expecting 'async', 'for' or 'if' in comprehensive expression!"))
 
     and parseSyncCompFor (stream : TokenStream) =
         (Node.Empty, stream )
