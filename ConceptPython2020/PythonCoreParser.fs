@@ -1020,7 +1020,103 @@ module PythonCoreParser =
         (Node.TestList(spanStart, getPosition rest, List.toArray(List.rev nodes), List.toArray(List.rev separators)), rest )
 
     and parseDictorSetMaker (stream : TokenStream) =
-        (Node.Empty, stream)
+        let spanStart = getPosition stream
+        let mutable nodes : Node list = []
+        let mutable Separators : Token list = []
+        let mutable isSet = true
+        let mutable rest = stream
+        match tryToken rest with
+        |   Some(Token.PyMul( _ , _ , _ ), _ ) ->
+                let node, rest2 = parseStarExpr rest
+                rest <- rest2
+                nodes <- node :: nodes
+        |   Some(Token.PyPower( _ , _ , _ ), rest2) ->
+                let op = List.head rest
+                let node, rest3 = parseExpr rest2
+                rest <- rest3
+                isSet <- false
+                nodes <- Node.DictionaryKW(spanStart, getPosition(rest), op, node) :: nodes
+        |   Some( _ , _ ) ->
+                let left, rest2 = parseTest rest
+                match tryToken rest2 with
+                |   Some(Token.PyColon( _ , _ , _ ), rest3 ) ->
+                        let op = List.head rest2
+                        let right, rest4 = parseTest rest3
+                        isSet <- false
+                        rest <- rest4
+                        nodes <- Node.DictionaryEntry(spanStart, getPosition(rest4), left, op, right) :: nodes
+                |   Some( _ , _ ) ->
+                        nodes <- left :: nodes
+                        rest <- rest2
+                |   _ ->
+                        raise (SyntaxError(List.head rest, "Empty token stream!"))
+        |   _ ->
+                raise (SyntaxError(List.head rest, "Empty token stream!"))
+
+        match tryToken rest with
+        |   Some(Token.PyAsync( _ , _ , _ ), _ )
+        |   Some(Token.PyFor( _ , _ , _ ), _ ) ->
+                let right, rest2 = parseCompIter rest
+                nodes <- right :: nodes
+                rest <- rest2
+        |   Some(Token.PyComma( _ , _ , _ ), rest2) ->
+                while   match tryToken rest with
+                        |   Some(Token.PyComma( _ , _ , _ ), rest2) ->
+                                Separators <- List.head rest :: Separators
+                                rest <- rest2
+                                match tryToken rest with
+                                |   Some(Token.PyRightCurly( _ , _ , _ ), rest2) ->
+                                        false
+                                |   Some( _ , _ ) ->
+                                        match isSet with
+                                        |   true ->
+                                                match tryToken rest with
+                                                |   Some(Token.PyMul( _ , _ , _ ), _ ) ->
+                                                        let right, rest6 = parseStarExpr rest
+                                                        nodes <- right :: nodes
+                                                        rest <- rest6
+                                                        true
+                                                |   Some( _ , _ ) ->
+                                                        let right, rest6 = parseTest rest
+                                                        nodes <- right :: nodes
+                                                        rest <- rest6
+                                                        true
+                                                |   _ ->
+                                                        raise (SyntaxError(List.head rest, "Empty token stream!" ))
+                                        |   _ ->
+                                                match tryToken rest with
+                                                |   Some(Token.PyPower( _ , _ , _ ), rest2 ) ->
+                                                        let op = List.head rest
+                                                        let right, rest3 = parseExpr rest2
+                                                        nodes <- Node.DictionaryKW(spanStart, getPosition(rest3), op, right) :: nodes
+                                                        rest <- rest3
+                                                |   Some( _ , _ ) ->
+                                                        let left, rest2 = parseTest rest
+                                                        match tryToken rest2 with
+                                                        |   Some(Token.PyColon( _ , _ , _ ), rest3 ) ->
+                                                                let op = List.head rest2
+                                                                let right, rest4 = parseTest rest3
+                                                                nodes <- Node.DictionaryEntry(spanStart, getPosition(rest4), left, op, right) :: nodes
+                                                                rest <- rest4
+                                                        |   Some( _ , _ ) ->
+                                                                raise (SyntaxError(List.head rest2, "Expecting ':' in dictionary entry!"))
+                                                        |   _ ->
+                                                                raise (SyntaxError(List.head rest2, "Empty stream token!"))
+                                                |   _ ->
+                                                        raise (SyntaxError(List.head rest, "Empty token stream!"))
+                                                true
+                                |   _ ->
+                                        raise (SyntaxError(List.head rest, "Empty token stream!"))
+                        |   _ ->    false
+                    do ()
+        |   _ ->
+                raise (SyntaxError(List.head rest, "Empty token stream!"))
+
+        match isSet with
+        |   true    ->
+                (Node.SetContainer(spanStart, getPosition(rest), List.toArray(List.rev nodes), List.toArray(List.rev Separators)), rest)
+        |   _ ->
+                (Node.DictionaryContainer(spanStart, getPosition(rest), List.toArray(List.rev nodes), List.toArray(List.rev Separators)), rest)
 
     and parseArgList (stream : TokenStream) =
         let spanStart = getPosition stream
