@@ -783,7 +783,27 @@ module PythonCoreParser =
                 |   _ ->
                         raise (SyntaxError(List.head rest, "Empty token stream!"))
         |   Some(Token.PyLeftCurly( _ , _ , _ ), rest) ->
-                raise (System.Exception())
+                let op1 = List.head stream
+                match tryToken rest with
+                |   Some(Token.PyRightCurly( _ , _ , _ ), rest2) ->
+                        let op2 = List.head rest
+                        (Node.Dictionary(spanStart, getPosition(rest2), op1, Node.Empty, op2), rest2)
+                |   Some( _ , _ ) ->
+                        let node, rest2 = parseDictorSetMaker rest
+                        match tryToken rest2 with
+                        |   Some(Token.PyRightCurly( _ , _ , _ ), rest3 ) ->
+                                let op2 = List.head rest2
+                                match node with
+                                |   Node.DictionaryContainer( _ , _ , _ , _ ) ->
+                                        (Node.Dictionary(spanStart, getPosition(rest3), op1, node, op2), rest3)
+                                |   _ ->
+                                        (Node.Set(spanStart, getPosition(rest3), op1, node, op2), rest3)
+                        |   Some( _ , _ ) ->
+                                raise (SyntaxError(List.head rest, "Missing '}' in dictionary or set!"))
+                        |   _ ->
+                                raise (SyntaxError(List.head rest, "Empty token stream!"))
+                |   _ ->
+                        raise (SyntaxError(List.head rest, "Missing '}' in dictionary or set!"))
         |   Some( _ , _ ) ->
                 raise (SyntaxError(List.head stream, "Expecting literal name, number, string etc!"))
         |   _ ->
@@ -1000,7 +1020,7 @@ module PythonCoreParser =
         (Node.TestList(spanStart, getPosition rest, List.toArray(List.rev nodes), List.toArray(List.rev separators)), rest )
 
     and parseDictorSetMaker (stream : TokenStream) =
-        (Node.Empty, stream )
+        (Node.Empty, stream)
 
     and parseArgList (stream : TokenStream) =
         let spanStart = getPosition stream
