@@ -1077,7 +1077,22 @@ module PythonCoreParser =
                 raise (SyntaxError(List.head stream, "Missing 'if' in comprehension expression!"))
 
     and parseYield (stream : TokenStream) =
-        (Node.Empty, stream )
+        let spanStart = getPosition stream
+        match tryToken stream with
+        |   Some(Token.PyYield( _ , _ , _ ), rest ) ->
+                let op = List.head stream
+                match tryToken rest with
+                |   Some(Token.PyFrom( _ , _ , _ ), rest2 ) ->
+                        let op2 = List.head rest
+                        let node, rest3 = parseTest rest2
+                        (Node.YieldFrom(spanStart, getPosition(rest3), op, op2, node), rest3)
+                |   Some( _ , rest2 ) ->
+                        let node, rest3 = parseTestListStarExpr rest2
+                        (Node.Yield(spanStart, getPosition(rest3), op, node), rest3)
+                |   _ ->
+                        raise (SyntaxError(List.head rest, "Empty token stream!" ))
+        |   _ ->
+                raise(SyntaxError(List.head stream, "Missing 'yield' in yield expression!"))
 
     // Statement rules in Python 3.9 //////////////////////////////////////////////////////////////
 
