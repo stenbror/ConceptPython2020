@@ -1263,7 +1263,19 @@ module PythonCoreParser =
     // Statement rules in Python 3.9 //////////////////////////////////////////////////////////////
 
     and parseStmt (stream : TokenStream) =
-        (Node.Empty, stream )
+        match tryToken stream with
+        |   Some(Token.PyIf( _ , _ , _ ), _ )
+        |   Some(Token.PyFor( _ , _ , _ ), _ )
+        |   Some(Token.PyWhile( _ , _ , _ ), _ )
+        |   Some(Token.PyAsync( _ , _ , _ ), _ )
+        |   Some(Token.PyWith( _ , _ , _ ), _ )
+        |   Some(Token.PyTry( _ , _ , _ ), _ )
+        |   Some(Token.PyDef( _ , _ , _ ), _ )
+        |   Some(Token.PyClass( _ , _ , _ ), _ )
+        |   Some(Token.PyMatrice( _ , _ , _ ), _ ) ->
+                parseCompoundStmt stream
+        |   _ ->
+                parseSimpleStmt stream
 
     and parseSimpleStmt (stream : TokenStream) =
         (Node.Empty, stream )
