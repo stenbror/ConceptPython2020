@@ -1421,7 +1421,11 @@ module PythonCoreParser =
                 raise (SyntaxError(List.head rest , "Empty token stream!"))
 
     and parseImportStmt (stream : TokenStream) =
-        (Node.Empty, stream )
+        match tryToken stream with
+        |   Some(Token.PyImport( _ , _ , _ ), _ ) ->    parseImportNameStmt stream
+        |   Some(Token.PyFrom( _ , _ , _ ), _ ) ->      parseImportFromStmt stream
+        |   Some( _ , _ ) ->    raise (SyntaxError(List.head stream, "Expecting 'import' or 'from' in import statement!"))
+        |   _ ->    raise (SyntaxError(List.head stream, "Empty token stream!"))
 
     and parseImportNameStmt (stream : TokenStream) =
         (Node.Empty, stream )
