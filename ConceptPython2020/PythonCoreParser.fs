@@ -1449,7 +1449,40 @@ module PythonCoreParser =
         (Node.Empty, stream )
 
     and parseGlobalStmt (stream : TokenStream) =
-        (Node.Empty, stream )
+        let spanStart = getPosition stream
+        let one, rest = match tryToken stream with
+                        |   Some(Token.PyGlobal( _ , _ , _ ), rest2 ) ->
+                                List.head stream, rest2
+                        |   Some( _ , _ ) ->
+                                raise (SyntaxError(List.head stream, "Expecting 'raise' in raise statement!"))
+                        |   _ ->
+                                raise (SyntaxError(List.head stream, "Empty token stream!"))
+        let mutable nodes : Token list = []
+        let mutable separators : Token list = []
+        let first, rest2 = match tryToken rest with
+                            |   Some(Token.Name( _ , _ , _ , _ ), rest3 ) ->
+                                    List.head rest, rest3
+                            |   Some( _ , _ ) ->
+                                    raise (SyntaxError(List.head rest, "Expecting name literal in 'global' statement!"))
+                            |   _ ->
+                                    raise (SyntaxError(List.head rest, "Empty token stream!"))
+        nodes <- first :: nodes
+        let mutable restAgain = rest2
+        while   match tryToken restAgain with
+                |   Some(Token.PyComma( _ , _ , _ ), rest5 ) ->
+                        separators <- List.head restAgain :: separators
+                        match tryToken rest5 with
+                        |   Some (Token.Name( _ , _ , _ , _ ), rest6 ) ->
+                                nodes <- List.head rest5 :: nodes
+                                restAgain <- rest6
+                                true
+                        |   Some ( _ , _ ) ->
+                                raise (SyntaxError(List.head rest5, "Expecting name literal in 'global' statement!"))
+                        |   _ ->    raise (SyntaxError(List.head restAgain, "Empty token stream!"))
+                |   Some ( _ , _ ) ->   false
+                |   _ ->    raise (SyntaxError(List.head restAgain, "Empty token stream!"))
+            do ()
+        (Node.GlobalStmt(spanStart, getPosition(stream), one, List.toArray(List.rev nodes), List.toArray(List.rev separators)), stream )
 
     and parseNonlocalStmt (stream : TokenStream) =
         (Node.Empty, stream )
