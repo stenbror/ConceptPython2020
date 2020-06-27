@@ -1330,7 +1330,16 @@ module PythonCoreParser =
         (Node.Empty, stream )
 
     and parseDelStmt (stream : TokenStream) =
-        (Node.Empty, stream )
+        let spanStart = getPosition stream
+        let one, rest = match tryToken stream with
+                        |   Some(Token.PyDel( _ , _ , _ ), rest2 ) ->
+                                List.head stream, rest2
+                        |   Some( _ , _ ) ->
+                                raise (SyntaxError(List.head stream, "Expecting 'del' in del statement!"))
+                        |   _ ->
+                                raise (SyntaxError(List.head stream, "Empty token stream!"))
+        let two, rest3 = parseExprList rest
+        (Node.DelStmt(spanStart, getPosition(rest3), one, two), rest3 )
 
     and parsePassStmt (stream : TokenStream) =
         (Node.Empty, stream )
