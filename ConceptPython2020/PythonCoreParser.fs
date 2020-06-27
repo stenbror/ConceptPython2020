@@ -1305,7 +1305,20 @@ module PythonCoreParser =
                 raise (SyntaxError(List.head rest, "Empty token stream!"))
 
     and parseSmallStmt (stream : TokenStream) =
-        (Node.Empty, stream )
+        match tryToken stream with
+        |   Some(Token.PyDel( _ , _ , _ ), _ ) ->       parseDelStmt stream
+        |   Some(Token.PyPass( _ , _ , _ ), _ ) ->      parsePassStmt stream
+        |   Some(Token.PyBreak( _ , _ , _ ), _ ) ->     parseBreakStmt stream
+        |   Some(Token.PyContinue( _ , _ , _ ), _ ) ->  parseContinueStmt stream
+        |   Some(Token.PyReturn( _ , _ , _ ), _ ) ->    parseReturnStmt stream
+        |   Some(Token.PyRaise( _ , _ , _ ), _ ) ->     parseRaiseStmt stream
+        |   Some(Token.PyImport( _ , _ , _ ), _ ) ->    parseImportStmt stream
+        |   Some(Token.PyFrom( _ , _ , _ ), _ ) ->      parseImportStmt stream
+        |   Some(Token.PyGlobal( _ , _ , _ ), _ ) ->    parseGlobalStmt stream
+        |   Some(Token.PyNonlocal( _ , _ , _ ), _ ) ->  parseNonlocalStmt stream
+        |   Some(Token.PyAssert( _ , _ , _ ), _ ) ->    parseAssertStmt stream
+        |   Some( _ , _ ) ->                            parseExprStmt stream
+        |   _ ->    raise (SyntaxError(List.head stream, "Empty token stream!"))
 
     and parseExprStmt (stream : TokenStream) =
         (Node.Empty, stream )
@@ -1317,6 +1330,9 @@ module PythonCoreParser =
         (Node.Empty, stream )
 
     and parseDelStmt (stream : TokenStream) =
+        (Node.Empty, stream )
+
+    and parsePassStmt (stream : TokenStream) =
         (Node.Empty, stream )
 
     and parseBreakStmt (stream : TokenStream) =
