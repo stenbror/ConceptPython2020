@@ -1342,7 +1342,15 @@ module PythonCoreParser =
         (Node.DelStmt(spanStart, getPosition(rest3), one, two), rest3 )
 
     and parsePassStmt (stream : TokenStream) =
-        (Node.Empty, stream )
+        let spanStart = getPosition stream
+        let one, rest = match tryToken stream with
+                        |   Some(Token.PyPass( _ , _ , _ ), rest2 ) ->
+                                List.head stream, rest2
+                        |   Some( _ , _ ) ->
+                                raise (SyntaxError(List.head stream, "Expecting 'pass' in pass statement!"))
+                        |   _ ->
+                                raise (SyntaxError(List.head stream, "Empty token stream!"))
+        (Node.PassStmt(spanStart, getPosition(rest), one), rest )
 
     and parseBreakStmt (stream : TokenStream) =
         (Node.Empty, stream )
