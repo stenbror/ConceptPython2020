@@ -1521,7 +1521,31 @@ module PythonCoreParser =
         (Node.NonlocalStmt(spanStart, getPosition(stream), one, List.toArray(List.rev nodes), List.toArray(List.rev separators)), stream )
 
     and parseAssertStmt (stream : TokenStream) =
-        (Node.Empty, stream )
+        let spanStart = getPosition stream
+        let one, rest = match tryToken stream with
+                        |   Some(Token.PyAssert( _ , _ , _ ), rest2 ) ->
+                                List.head stream, rest2
+                        |   Some( _ , _ ) ->
+                                raise (SyntaxError(List.head stream, "Expecting 'assert' in assert statement!"))
+                        |   _ ->
+                                raise (SyntaxError(List.head stream, "Empty token stream!"))
+        match tryToken rest with
+        |   Some(Token.Newline( _ , _ , _ ), _ )
+        |   Some(Token.PySemiColon( _ , _ , _ ), _ ) ->
+                (Node.AssertStmt(spanStart, getPosition(rest), one, Node.Empty, Token.Empty, Node.Empty), rest )
+        |   Some( _ , _ ) ->
+                let left, rest2 = parseTest rest
+                match tryToken rest2 with
+                |   Some(Token.PyComma( _ , _ , _ ), rest3 ) ->
+                        let two = List.head rest2
+                        let right, rest4 = parseTest rest3
+                        (Node.AssertStmt(spanStart, getPosition(rest4), one, left, two, right), rest4 )
+                |   Some( _ , _ ) ->
+                        (Node.AssertStmt(spanStart, getPosition(rest2), one, left, Token.Empty, Node.Empty), rest2 )
+                |   _ ->
+                        raise (SyntaxError(List.head rest , "Empty token stream!"))        
+        |   _ ->
+                raise (SyntaxError(List.head rest , "Empty token stream!"))
 
     and parseCompoundStmt (stream : TokenStream) =
         (Node.Empty, stream )
