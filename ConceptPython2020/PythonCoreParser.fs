@@ -1278,7 +1278,31 @@ module PythonCoreParser =
                 parseSimpleStmt stream
 
     and parseSimpleStmt (stream : TokenStream) =
-        (Node.Empty, stream )
+        let mutable nodes : Node list = []
+        let mutable separators : Token list = []
+        let spanStart = getPosition stream
+        let mutable node, rest = parseSmallStmt stream
+        nodes <- node :: nodes
+        while   match tryToken rest with
+                |   Some(Token.PySemiColon( _ , _ , _ ), rest2 ) ->
+                        separators <- List.head rest :: separators
+                        match tryToken rest2 with
+                        |   Some(Token.Newline( _ , _ , _ ), _ ) -> false
+                        |   Some( _ , _ ) ->
+                                let node2, rest3 = parseSmallStmt rest2
+                                nodes <- node2 :: nodes
+                                rest <- rest3
+                                true
+                        |   _ ->    raise (SyntaxError(List.head rest2, "Empty token stream!"))
+                | _ ->  false
+            do ()
+        match tryToken rest with
+        |   Some(Token.Newline( _ , _ , _ ), rest4 ) ->
+                (Node.SimpleStmtList(spanStart, getPosition(rest4), List.toArray(List.rev nodes), List.toArray(List.rev separators), List.head rest), rest4)
+        |   Some ( _ , _ ) ->
+                raise (SyntaxError(List.head rest, "Expecting NEWLINE after simple statement list!"))
+        |   _ ->
+                raise (SyntaxError(List.head rest, "Empty token stream!"))
 
     and parseSmallStmt (stream : TokenStream) =
         (Node.Empty, stream )
