@@ -1375,7 +1375,23 @@ module PythonCoreParser =
         (Node.ContinueStmt(spanStart, getPosition(rest), one), rest )
 
     and parseReturnStmt (stream : TokenStream) =
-        (Node.Empty, stream )
+        let spanStart = getPosition stream
+        let one, rest = match tryToken stream with
+                        |   Some(Token.PyReturn( _ , _ , _ ), rest2 ) ->
+                                List.head stream, rest2
+                        |   Some( _ , _ ) ->
+                                raise (SyntaxError(List.head stream, "Expecting 'return' in return statement!"))
+                        |   _ ->
+                                raise (SyntaxError(List.head stream, "Empty token stream!"))
+        match tryToken rest with
+        |   Some(Token.Newline( _ , _ , _ ), _ )
+        |   Some(Token.PySemiColon( _ , _ , _ ), _ ) ->
+                (Node.ReturnStmt(spanStart, getPosition(rest), one, Node.Empty), rest )
+        |   Some( _ , _ ) ->
+                let node, rest2 = parseTestListStarExpr rest
+                (Node.ReturnStmt(spanStart, getPosition(rest2), one, node), rest2 )
+        |   _ ->
+                raise (SyntaxError(List.head rest, "Empty token stream!"))
 
     and parseRaiseStmt (stream : TokenStream) =
         (Node.Empty, stream )
