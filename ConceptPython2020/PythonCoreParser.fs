@@ -1364,7 +1364,15 @@ module PythonCoreParser =
         (Node.BreakStmt(spanStart, getPosition(rest), one), rest )
 
     and parseContinueStmt (stream : TokenStream) =
-        (Node.Empty, stream )
+        let spanStart = getPosition stream
+        let one, rest = match tryToken stream with
+                        |   Some(Token.PyContinue( _ , _ , _ ), rest2 ) ->
+                                List.head stream, rest2
+                        |   Some( _ , _ ) ->
+                                raise (SyntaxError(List.head stream, "Expecting 'continue' in continue statement!"))
+                        |   _ ->
+                                raise (SyntaxError(List.head stream, "Empty token stream!"))
+        (Node.ContinueStmt(spanStart, getPosition(rest), one), rest )
 
     and parseReturnStmt (stream : TokenStream) =
         (Node.Empty, stream )
