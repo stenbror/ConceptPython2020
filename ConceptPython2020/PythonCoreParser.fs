@@ -1440,10 +1440,48 @@ module PythonCoreParser =
         (Node.Empty, stream )
 
     and parseImportAsNamesStmt (stream : TokenStream) =
-        (Node.Empty, stream )
+        let spanStart = getPosition stream
+        let mutable nodes : Node list = []
+        let mutable separators : Token list = []
+        let mutable rest = stream
+        let node, rest2 = parseImportAsNameStmt rest
+        nodes <- node :: nodes
+        rest <- rest2
+        while   match tryToken rest with
+                |   Some(Token.PyComma( _ , _ , _ ), rest3 ) ->
+                        separators <- List.head rest :: separators
+                        match tryToken rest3 with
+                        |   Some(Token.PyImport( _ , _ , _ ), _) -> false
+                        |   Some( _ , _ ) ->
+                                let node2, rest3 = parseImportAsNameStmt rest3
+                                nodes <- node2 :: nodes
+                                rest <- rest3
+                                true
+                        |   _ ->    raise (SyntaxError(List.head rest3, "Empty token stream!"))
+                |   Some( _ , _ ) ->    false
+                |   _ ->    raise (SyntaxError(List.head rest, "Empty token stream!"))
+            do ()
+        (Node.ImportAsNames(spanStart, getPosition(rest), List.toArray(List.rev nodes), List.toArray(List.rev separators)), rest )
 
     and parseDottedAsNamesStmt (stream : TokenStream) =
-        (Node.Empty, stream )
+        let spanStart = getPosition stream
+        let mutable nodes : Node list = []
+        let mutable separators : Token list = []
+        let mutable rest = stream
+        let node, rest2 = parseDottedAsNameStmt rest
+        nodes <- node :: nodes
+        rest <- rest2
+        while   match tryToken rest with
+                |   Some(Token.PyComma( _ , _ , _ ), rest3 ) ->
+                        separators <- List.head rest :: separators
+                        let node2, rest3 = parseDottedAsNameStmt rest3
+                        nodes <- node2 :: nodes
+                        rest <- rest3
+                        true
+                |   Some( _ , _ ) ->    false
+                |   _ ->    raise (SyntaxError(List.head rest, "Empty token stream!"))
+            do ()
+        (Node.DottedAsNames(spanStart, getPosition(rest), List.toArray(List.rev nodes), List.toArray(List.rev separators)), rest )
 
     and parseDottedNameStmt (stream : TokenStream) =
         let spanStart = getPosition stream
