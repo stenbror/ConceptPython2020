@@ -4,6 +4,7 @@ module TestPythonCoreParser =
 
     open Xunit
 
+    open PythonCoreFramework.Runtime.PythonCoreTokenizer
     open PythonCoreFramework.Runtime.PythonCoreParser
 
     [<Fact>]
