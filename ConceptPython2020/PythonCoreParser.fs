@@ -1434,7 +1434,24 @@ module PythonCoreParser =
         (Node.Empty, stream )
 
     and parseImportAsNameStmt (stream : TokenStream) =
-        (Node.Empty, stream )
+        let spanStart = getPosition stream
+        match tryToken stream with
+        |   Some(Token.Name( _ , _ , _ , _ ), rest ) ->
+                let left = List.head stream
+                match tryToken rest with
+                |   Some(Token.PyAs( _ , _ , _ ), rest2 ) ->
+                        let op = List.head rest
+                        match tryToken rest2 with
+                        |   Some(Token.Name( _ , _ , _ , _ ), rest3 ) ->
+                                let right = List.head rest2
+                                (Node.ImportAsName(spanStart, getPosition(rest3), left, op, right), rest3 )
+                        |   Some( _ , _ ) ->    raise (SyntaxError(List.head rest2, "Expecting name literal after 'as'"))
+                        |   _ ->    raise (SyntaxError(List.head rest2, "Empty token stream!"))
+                |   Some( _ , _ ) ->
+                        (Node.ImportAsName(spanStart, getPosition(rest), left, Token.Empty, Token.Empty), rest )
+                |   _ ->    raise (SyntaxError(List.head rest, "Empty token stream!"))
+        |   Some( _ , _ ) ->    raise (SyntaxError(List.head stream, "Expecting literal name in import statement!"))
+        |   _ ->    raise (SyntaxError(List.head stream, "Empty token stream!"))
 
     and parseDottedAsNameStmt (stream : TokenStream) =
         let spanStart = getPosition stream
