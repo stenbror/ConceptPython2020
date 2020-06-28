@@ -107,3 +107,42 @@ module PythonCoreTokenizer =
 
     type TokenStream = Token list
 
+    let keywords =  
+        [ 
+            ( "and",        Token.PyAnd );
+            ( "as",         Token.PyAs );
+            ( "assert",     Token.PyAssert );
+            ( "async",      Token.PyAsync );
+            ( "await",      Token.PyAwait );
+            ( "break",      Token.PyBreak );
+            ( "class",      Token.PyClass );
+            ( "continue",   Token.PyContinue );
+            ( "def",        Token.PyDef );
+            ( "del",        Token.PyDel );
+            ( "elif",       Token.PyElif );
+            ( "else",       Token.PyElse );
+            ( "except",     Token.PyExcept );
+            ( "finally",    Token.PyFinally );
+            ( "for",        Token.PyFor );
+            ( "from",       Token.PyFrom );
+            ( "global",     Token.PyGlobal );
+            ( "if",         Token.PyIf );
+            ( "import",     Token.PyImport );
+            ( "in",         Token.PyIn );
+            ( "is",         Token.PyIs );
+            ( "lambda",     Token.PyLambda );
+            ( "nonlocal",   Token.PyNonlocal );
+            ( "not",        Token.PyNot );
+            ( "or",         Token.PyOr );
+            ( "pass",       Token.PyPass );
+            ( "raise",      Token.PyRaise );
+            ( "return",     Token.PyReturn );
+            ( "try",        Token.PyTry );
+            ( "while",      Token.PyWhile );
+            ( "with",       Token.PyWith );
+            ( "yield",      Token.PyYield );
+            ( "False",      Token.PyFalse );
+            ( "None",       Token.PyNone );
+            ( "True",       Token.PyTrue );
+        ] |> Map.ofList
+
