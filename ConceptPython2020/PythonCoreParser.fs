@@ -1446,7 +1446,29 @@ module PythonCoreParser =
         (Node.Empty, stream )
 
     and parseDottedNameStmt (stream : TokenStream) =
-        (Node.Empty, stream )
+        let spanStart = getPosition stream
+        match tryToken stream with
+        |   Some(Token.Name( _ , _ , _ , _ ), rest ) ->
+                let mutable nodes : Token list = []
+                let mutable separators : Token list = []
+                nodes <- List.head stream :: nodes
+                let mutable restAgain = rest
+                while   match tryToken restAgain with
+                        |   Some(Token.PyDot( _ , _ , _ ), rest ) ->
+                                separators <- List.head restAgain :: separators
+                                match tryToken rest with
+                                |   Some(Token.Name( _ , _ , _ , _ ), rest2 ) ->
+                                        nodes <- List.head rest :: nodes
+                                        restAgain <- rest2
+                                |   Some( _ , _ ) ->    raise (SyntaxError(List.head rest, "Expecting name literal after '.'"))
+                                |   _ ->    raise (SyntaxError(List.head rest, "Empty token stream!"))
+                                true
+                        |   Some( _ , _ ) -> false
+                        |   _ ->    raise (SyntaxError(List.head stream, "Empty token stream!"))
+                    do ()
+                (Node.DottedName(spanStart, getPosition(restAgain), List.toArray(List.rev nodes), List.toArray(List.rev separators)), restAgain)
+        |   Some( _ , _ ) ->    raise (SyntaxError(List.head stream, "Expecting name literal!"))
+        |   _ ->    raise (SyntaxError(List.head stream, "Empty token stream!"))
 
     and parseGlobalStmt (stream : TokenStream) =
         let spanStart = getPosition stream
