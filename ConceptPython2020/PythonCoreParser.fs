@@ -1326,10 +1326,64 @@ module PythonCoreParser =
         |   _ ->    raise (SyntaxError(List.head stream, "Empty token stream!"))
 
     and parseImportNameStmt (stream : TokenStream) =
-        (Node.Empty, stream )
+        let spanStart = getPosition stream
+        match tryToken stream with
+        |   Some(Token.PyImport( _ , _ , _ ), rest ) ->
+                let op = List.head stream
+                let node, rest2 = parseDottedAsNamesStmt rest
+                (Node.ImportNameStmt(spanStart, getPosition(rest2), op, node), rest2 )
+        |   Some( _ , _ ) ->    raise (SyntaxError(List.head stream, "Expecting 'import' in import statement!"))
+        |   _ ->    raise (SyntaxError(List.head stream, "Empty token stream!"))
 
     and parseImportFromStmt (stream : TokenStream) =
-        (Node.Empty, stream )
+        let spanStart = getPosition stream
+        match tryToken stream with
+        |   Some(Token.PyFrom( _ , _ , _ ), rest ) ->
+                let op1 = List.head stream
+                let mutable restAgain = rest
+                let mutable dots : Token list = []
+                while   match tryToken restAgain with
+                        |   Some(Token.PyDot( _ , _ , _ ), rest )
+                        |   Some(Token.PyElipsis( _ , _ , _ ), rest) ->
+                                dots <- List.head restAgain :: dots
+                                restAgain <- rest
+                                true
+                        |   Some( _ , _ ) -> false
+                        |   _ ->    raise (SyntaxError(List.head restAgain, "Empty token stream!"))
+                    do ()
+                let left =  match tryToken restAgain with
+                            |   Some(Token.PyImport( _ , _ , _ ), rest ) ->
+                                    if dots.Length = 0 then
+                                        raise (SyntaxError(List.head restAgain, "Missing '.' or from part!"))
+                                    Node.Empty
+                            |   Some( _ , _ ) ->
+                                    let node, rest = parseDottedNameStmt restAgain
+                                    restAgain <- rest
+                                    node
+                            |   _ ->    raise (SyntaxError(List.head restAgain, "Empty token stream!"))
+                match tryToken restAgain with
+                |   Some(Token.PyImport( _, _ , _ ), rest ) ->
+                        let op2 = List.head restAgain
+                        match tryToken rest with
+                        |   Some(Token.PyMul( _ , _ , _ ), rest2 ) ->
+                                (Node.ImportFromStmt(spanStart, getPosition(rest2), op1, List.toArray(List.rev dots), left, op2, List.head rest, Node.Empty, Token.Empty), rest2)
+                        |   Some(Token.PyLeftParen( _ , _ , _ ), rest2 ) ->
+                                let op3 = List.head rest
+                                let right, rest3 = parseImportAsNameStmt rest2
+                                match tryToken rest3 with
+                                |   Some(Token.PyRightParen( _ , _ , _ ), rest4 ) ->
+                                        (Node.ImportFromStmt(spanStart, getPosition(rest4), op1, List.toArray(List.rev dots), left, op2, op3, right, List.head rest3), rest4)
+                                |   Some( _ , _ ) ->    raise (SyntaxError(List.head rest3, "Expecting ')' in import statement!"))
+                                |   _ ->    raise (SyntaxError(List.head rest3, "Empty token stream!"))
+                        |   Some( _ , _ ) ->
+                                let right, rest3 = parseImportAsNamesStmt rest
+                                (Node.ImportFromStmt(spanStart, getPosition(rest3), op1, List.toArray(List.rev dots), left, op2, Token.Empty, right, Token.Empty), rest3)
+                        |   _ ->    raise (SyntaxError(List.head rest, "Empty token stream!"))
+                |   Some( _ , _ ) ->
+                        raise (SyntaxError(List.head restAgain, "Expecting 'import' in import statement!"))
+                |   _ ->    raise (SyntaxError(List.head restAgain, "Empty token stream!"))
+        |   Some( _ , _ ) ->    raise (SyntaxError(List.head stream, "Expected 'from' in import statement!"))
+        |   _ ->    raise (SyntaxError(List.head stream, "Empty token stream!"))
 
     and parseImportAsNameStmt (stream : TokenStream) =
         let spanStart = getPosition stream
