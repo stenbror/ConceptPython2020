@@ -94,7 +94,8 @@ module PythonCoreParser =
         |   ShiftRightAssign of uint32 * uint32 * Node * Token * Node
         |   MatriceAssign of uint32 * uint32 * Node * Token * Node
         |   ModuloAssign of uint32 * uint32 * Node * Token * Node
-        |   Assign of uint32 * uint32 * Node * Token * Node
+        |   AnnAssign of uint32 * uint32 * Node * Token * Node * Token * Node
+        |   Assign of uint32 * uint32 * Node * Token * Node * Node
         |   DelStmt of uint32 * uint32 * Token * Node
         |   PassStmt of uint32 * uint32 * Token
         |   BreakStmt of uint32 * uint32 * Token
@@ -1219,7 +1220,135 @@ module PythonCoreParser =
         |   _ ->    raise (SyntaxError(List.head stream, "Empty token stream!"))
 
     and parseExprStmt (stream : TokenStream) =
-        (Node.Empty, stream )
+        let spanStart = getPosition stream
+        let left, rest = parseTestListStarExpr stream
+        match tryToken rest with
+        |   Some(Token.PyPlusAssign( _ , _ , _ ), rest2) ->
+                let op = List.head rest
+                let right, rest3 =  match tryToken rest2 with
+                                    |   Some(Token.PyYield( _ , _ , _ ), _ ) -> parseYield rest2
+                                    |   Some( _ , _ ) -> parseTestList rest2
+                                    |   _ ->    raise (SyntaxError(List.head rest2, "Empty token stream!"))
+                (Node.PlusAssign(spanStart, getPosition(rest3), left, op, right), rest3)
+        |   Some(Token.PyMinusAssign( _ , _ , _ ), rest2) ->
+                let op = List.head rest
+                let right, rest3 =  match tryToken rest2 with
+                                    |   Some(Token.PyYield( _ , _ , _ ), _ ) -> parseYield rest2
+                                    |   Some( _ , _ ) -> parseTestList rest2
+                                    |   _ ->    raise (SyntaxError(List.head rest2, "Empty token stream!"))
+                (Node.MinusAssign(spanStart, getPosition(rest3), left, op, right), rest3)
+        |   Some(Token.PyMulAssign( _ , _ , _ ), rest2) ->
+                let op = List.head rest
+                let right, rest3 =  match tryToken rest2 with
+                                    |   Some(Token.PyYield( _ , _ , _ ), _ ) -> parseYield rest2
+                                    |   Some( _ , _ ) -> parseTestList rest2
+                                    |   _ ->    raise (SyntaxError(List.head rest2, "Empty token stream!"))
+                (Node.MulAssign(spanStart, getPosition(rest3), left, op, right), rest3)
+        |   Some(Token.PyPowerAssign( _ , _ , _ ), rest2) ->
+                let op = List.head rest
+                let right, rest3 =  match tryToken rest2 with
+                                    |   Some(Token.PyYield( _ , _ , _ ), _ ) -> parseYield rest2
+                                    |   Some( _ , _ ) -> parseTestList rest2
+                                    |   _ ->    raise (SyntaxError(List.head rest2, "Empty token stream!"))
+                (Node.PowerAssign(spanStart, getPosition(rest3), left, op, right), rest3)
+        |   Some(Token.PyFloorDivAssign( _ , _ , _ ), rest2) ->
+                let op = List.head rest
+                let right, rest3 =  match tryToken rest2 with
+                                    |   Some(Token.PyYield( _ , _ , _ ), _ ) -> parseYield rest2
+                                    |   Some( _ , _ ) -> parseTestList rest2
+                                    |   _ ->    raise (SyntaxError(List.head rest2, "Empty token stream!"))
+                (Node.FloorDivAssign(spanStart, getPosition(rest3), left, op, right), rest3)
+        |   Some(Token.PyDivAssign( _ , _ , _ ), rest2) ->
+                let op = List.head rest
+                let right, rest3 =  match tryToken rest2 with
+                                    |   Some(Token.PyYield( _ , _ , _ ), _ ) -> parseYield rest2
+                                    |   Some( _ , _ ) -> parseTestList rest2
+                                    |   _ ->    raise (SyntaxError(List.head rest2, "Empty token stream!"))
+                (Node.DivAssign(spanStart, getPosition(rest3), left, op, right), rest3)
+        |   Some(Token.PyModuloAssign( _ , _ , _ ), rest2) ->
+                let op = List.head rest
+                let right, rest3 =  match tryToken rest2 with
+                                    |   Some(Token.PyYield( _ , _ , _ ), _ ) -> parseYield rest2
+                                    |   Some( _ , _ ) -> parseTestList rest2
+                                    |   _ ->    raise (SyntaxError(List.head rest2, "Empty token stream!"))
+                (Node.ModuloAssign(spanStart, getPosition(rest3), left, op, right), rest3)
+        |   Some(Token.PyMatriceAssign( _ , _ , _ ), rest2) ->
+                let op = List.head rest
+                let right, rest3 =  match tryToken rest2 with
+                                    |   Some(Token.PyYield( _ , _ , _ ), _ ) -> parseYield rest2
+                                    |   Some( _ , _ ) -> parseTestList rest2
+                                    |   _ ->    raise (SyntaxError(List.head rest2, "Empty token stream!"))
+                (Node.MatriceAssign(spanStart, getPosition(rest3), left, op, right), rest3)
+        |   Some(Token.PyBitAndAssign( _ , _ , _ ), rest2) ->
+                let op = List.head rest
+                let right, rest3 =  match tryToken rest2 with
+                                    |   Some(Token.PyYield( _ , _ , _ ), _ ) -> parseYield rest2
+                                    |   Some( _ , _ ) -> parseTestList rest2
+                                    |   _ ->    raise (SyntaxError(List.head rest2, "Empty token stream!"))
+                (Node.AndAssign(spanStart, getPosition(rest3), left, op, right), rest3)
+        |   Some(Token.PyBitOrAssign( _ , _ , _ ), rest2) ->
+                let op = List.head rest
+                let right, rest3 =  match tryToken rest2 with
+                                    |   Some(Token.PyYield( _ , _ , _ ), _ ) -> parseYield rest2
+                                    |   Some( _ , _ ) -> parseTestList rest2
+                                    |   _ ->    raise (SyntaxError(List.head rest2, "Empty token stream!"))
+                (Node.OrAssign(spanStart, getPosition(rest3), left, op, right), rest3)
+        |   Some(Token.PyBitXorAssign( _ , _ , _ ), rest2) ->
+                let op = List.head rest
+                let right, rest3 =  match tryToken rest2 with
+                                    |   Some(Token.PyYield( _ , _ , _ ), _ ) -> parseYield rest2
+                                    |   Some( _ , _ ) -> parseTestList rest2
+                                    |   _ ->    raise (SyntaxError(List.head rest2, "Empty token stream!"))
+                (Node.XorAssign(spanStart, getPosition(rest3), left, op, right), rest3)
+        |   Some(Token.PyShiftLeftAssign( _ , _ , _ ), rest2) ->
+                let op = List.head rest
+                let right, rest3 =  match tryToken rest2 with
+                                    |   Some(Token.PyYield( _ , _ , _ ), _ ) -> parseYield rest2
+                                    |   Some( _ , _ ) -> parseTestList rest2
+                                    |   _ ->    raise (SyntaxError(List.head rest2, "Empty token stream!"))
+                (Node.ShiftLeftAssign(spanStart, getPosition(rest3), left, op, right), rest3)
+        |   Some(Token.PyShiftRightAssign( _ , _ , _ ), rest2) ->
+                let op = List.head rest
+                let right, rest3 =  match tryToken rest2 with
+                                    |   Some(Token.PyYield( _ , _ , _ ), _ ) -> parseYield rest2
+                                    |   Some( _ , _ ) -> parseTestList rest2
+                                    |   _ ->    raise (SyntaxError(List.head rest2, "Empty token stream!"))
+                (Node.ShiftRightAssign(spanStart, getPosition(rest3), left, op, right), rest3)
+        |   Some(Token.PyColon( _ , _ , _ ), rest2 ) ->
+                let op = List.head rest
+                let right, rest3 = parseTest rest2
+                match tryToken rest3 with
+                |   Some(Token.PyAssign( _ , _ , _ ), rest4) ->
+                        let op2 = List.head rest3
+                        let next, rest5 =   match tryToken rest4 with
+                                            |   Some(Token.PyYield( _ , _ , _ ), _ ) -> parseYield rest2
+                                            |   Some( _ , _ ) -> parseTestList rest2
+                                            |   _ ->    raise (SyntaxError(List.head rest2, "Empty token stream!"))
+                        (Node.AnnAssign(spanStart, getPosition(rest5), left, op, right, op2, next), rest5)
+                |   Some( _ , _ ) ->
+                        (Node.AnnAssign(spanStart, getPosition(rest3), left, op, right, Token.Empty, Node.Empty), rest3)
+                |   _ ->    raise (SyntaxError(List.head rest3, "Empty token stream!"))
+        |   Some(Token.PyAssign( _ , _ , _ ), _ ) ->
+                let mutable res = left
+                let mutable restAgain = rest
+                while   match tryToken restAgain with
+                        |   Some(Token.PyAssign( _ , _ , _ ), rest2) ->
+                                let op = List.head restAgain
+                                let right, rest3 =  match tryToken rest2 with
+                                                    |   Some(Token.PyYield( _ , _ , _ ), _ ) -> parseYield rest2
+                                                    |   Some( _ , _ ) -> parseTestList rest2
+                                                    |   _ ->    raise (SyntaxError(List.head rest2, "Empty token stream!"))
+
+                                // Add parsing of typecomment here later, including checking for only after last '='
+                                restAgain <- rest3
+                                res <- Node.Assign(spanStart, getPosition(restAgain), res, op, right, Node.Empty)
+                                true
+                        |   Some( _ , _ ) -> false
+                        |   _ -> raise (SyntaxError(List.head restAgain, "Empty token stream!"))
+                    do ()
+                (res, restAgain)
+        |   Some ( _ , _ ) ->   left, rest
+        |   _ ->    raise (SyntaxError(List.head rest, "Empty token stream!"))
 
     and parseAnnAssign (stream : TokenStream) =
         (Node.Empty, stream )
