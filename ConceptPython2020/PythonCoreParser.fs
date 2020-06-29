@@ -1350,11 +1350,57 @@ module PythonCoreParser =
         |   Some ( _ , _ ) ->   left, rest
         |   _ ->    raise (SyntaxError(List.head rest, "Empty token stream!"))
 
-    and parseAnnAssign (stream : TokenStream) =
-        (Node.Empty, stream )
-
     and parseTestListStarExpr (stream : TokenStream) =
-        (Node.Empty, stream )
+        let spanStart = getPosition stream
+        let mutable nodes : Node list = []
+        let mutable separators : Token list = []
+        let mutable restAgain = stream
+        let node, rest =    match tryToken restAgain with
+                            |   Some(Token.PyMul( _ , _ , _ ), _ ) ->
+                                    parseStarExpr restAgain
+                            |   Some( _ , _ ) ->
+                                    parseTest restAgain
+                            | _ -> raise (SyntaxError(List.head restAgain, "Empty token stream!"))
+        nodes <- node :: nodes
+        restAgain <- rest
+        while   match tryToken restAgain with
+                |   Some(Token.PyComma( _ , _ , _ ), rest2) ->
+                        separators <- List.head restAgain :: separators
+                        restAgain <- rest2
+                        match tryToken restAgain with
+                        |   Some(Token.PyPlusAssign( _ , _ , _ ), _ )
+                        |   Some(Token.PyMinusAssign( _ , _ , _ ), _ )
+                        |   Some(Token.PyMulAssign( _ , _ , _ ), _ )
+                        |   Some(Token.PyPowerAssign( _ , _ , _ ), _ )
+                        |   Some(Token.PyFloorDivAssign( _ , _ , _ ), _ )
+                        |   Some(Token.PyDivAssign( _ , _ , _ ), _ )
+                        |   Some(Token.PyModuloAssign( _ , _ , _ ), _ )
+                        |   Some(Token.PyMatriceAssign( _ , _ , _ ), _ )
+                        |   Some(Token.PyBitAndAssign( _ , _ , _ ), _ )
+                        |   Some(Token.PyBitOrAssign( _ , _ , _ ), _ )
+                        |   Some(Token.PyBitXorAssign( _ , _ , _ ), _ )
+                        |   Some(Token.PyShiftLeftAssign( _ , _ , _ ), _ )
+                        |   Some(Token.PyShiftRightAssign( _ , _ , _ ), _ )
+                        |   Some(Token.PyColon( _ , _ , _ ), _ )
+                        |   Some(Token.PyAssign( _ , _ , _ ), _ )
+                        |   Some(Token.Newline( _ , _ , _ ), _ )
+                        |   Some(Token.PySemiColon( _ , _ , _ ), _ ) ->
+                                false
+                        |   Some(Token.PyMul( _ , _ , _ ), _ ) ->
+                                let node, rest = parseStarExpr restAgain
+                                nodes <- node :: nodes
+                                restAgain <- rest
+                                true
+                        |   Some( _ , _ ) ->
+                                let node, rest = parseTest restAgain
+                                nodes <- node :: nodes
+                                restAgain <- rest
+                                true
+                        |   _ ->    raise (SyntaxError(List.head restAgain, "Empty token stream!"))
+                |   Some( _ , _ ) -> false
+                |   _ ->    raise (SyntaxError(List.head restAgain, "Empty token stream!"))
+            do ()
+        (Node.TestList(spanStart, getPosition(restAgain), List.toArray(List.rev nodes), List.toArray(List.rev separators)), restAgain )
 
     and parseDelStmt (stream : TokenStream) =
         let spanStart = getPosition stream
