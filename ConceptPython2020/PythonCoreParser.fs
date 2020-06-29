@@ -1779,7 +1779,24 @@ module PythonCoreParser =
         |   _ ->    raise (SyntaxError(List.head stream, "Empty token stream!"))
 
     and parseAsyncStmt (stream : TokenStream) =
-        (Node.Empty, stream )
+        let spanStart = getPosition stream
+        match tryToken stream with
+        |   Some(Token.PyAsync( _ , _ , _ ), rest)  ->
+                let op = List.head stream
+                match tryToken rest with
+                |   Some(Token.PyDef( _ , _ , _ ), _ ) ->
+                        let node, rest2 = parseFuncDef rest
+                        (Node.AsyncFuncDef(spanStart, getPosition(rest2), op, node), rest2)
+                |   Some(Token.PyWith( _ , _ , _ ), _ ) ->
+                        let node, rest2 = parseWithStmt rest
+                        (Node.AsyncStmt(spanStart, getPosition(rest2), op, node), rest2)
+                |   Some(Token.PyFor( _ , _ , _ ), _ ) ->
+                        let node, rest2 = parseForStmt rest
+                        (Node.AsyncStmt(spanStart, getPosition(rest2), op, node), rest2)
+                |   Some( _ , _ ) ->    raise (SyntaxError(List.head rest, "Expecting 'def', 'with' or 'for' after 'async' statement!"))
+                |   _ ->    raise(SyntaxError(List.head stream, "Empty token strean!"))
+        |   Some( _ , _ ) ->    raise (SyntaxError(List.head stream, "Expecting 'async' in statement!"))
+        |   _ ->    raise(SyntaxError(List.head stream, "Empty token strean!"))
 
     and parseIfStmt (stream : TokenStream) =
         (Node.Empty, stream )
