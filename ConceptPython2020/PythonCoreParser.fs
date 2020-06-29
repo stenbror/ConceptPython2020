@@ -1765,7 +1765,18 @@ module PythonCoreParser =
                 raise (SyntaxError(List.head rest , "Empty token stream!"))
 
     and parseCompoundStmt (stream : TokenStream) =
-        (Node.Empty, stream )
+        match tryToken stream with
+        |   Some(Token.PyIf( _ , _ , _ ), _ ) ->    parseIfStmt stream
+        |   Some(Token.PyWhile( _ , _ , _ ), _ ) -> parseWhileStmt stream
+        |   Some(Token.PyFor( _ , _ , _ ), _ ) ->   parseForStmt stream
+        |   Some(Token.PyTry( _ , _ , _ ), _ ) ->   parseTryStmt stream
+        |   Some(Token.PyWith( _ , _ , _ ), _ ) ->  parseWithStmt stream
+        |   Some(Token.PyDef( _ , _ , _ ), _ ) ->   parseFuncDef stream
+        |   Some(Token.PyClass( _ , _ , _ ), _ ) -> parseClassDef stream
+        |   Some(Token.PyMatrice( _ , _ , _ ), _ ) -> parseDecorated stream
+        |   Some(Token.PyAsync( _ , _ , _ ), _ ) -> parseAsyncStmt stream
+        |   Some( _ , _ ) ->    raise(SyntaxError(List.head stream, "Not a compound statement!"))
+        |   _ ->    raise (SyntaxError(List.head stream, "Empty token stream!"))
 
     and parseAsyncStmt (stream : TokenStream) =
         (Node.Empty, stream )
@@ -1791,7 +1802,7 @@ module PythonCoreParser =
     and parseFinallyStmt (stream : TokenStream) =
         (Node.Empty, stream )
 
-    and parseWithtmt (stream : TokenStream) =
+    and parseWithStmt (stream : TokenStream) =
         (Node.Empty, stream )
 
     and parseWithItem (stream : TokenStream) =
