@@ -1802,8 +1802,20 @@ module PythonCoreParser =
         (Node.Empty, stream )
 
     and parseElseStmt (stream : TokenStream) =
-        (Node.Empty, stream )
-
+        let spanStart = getPosition stream
+        match tryToken stream with
+        |   Some(Token.PyElse( _ , _ , _ ), rest ) ->
+                let op = List.head stream
+                match tryToken rest with
+                |   Some(Token.PyColon( _ , _ , _ ), rest2 ) ->
+                        let op2 = List.head rest
+                        let node, rest3 = parseSuite rest2
+                        (Node.ElseStmt(spanStart, getPosition(rest3), op, op2, node), rest3)
+                |   Some( _ , _ ) ->    raise (SyntaxError(List.head stream, "Expecting ':' in else statement!"))
+                |   _ ->    raise(SyntaxError(List.head stream, "Empty token strean!"))
+        |   Some( _ , _ ) ->    raise (SyntaxError(List.head stream, "Expecting 'else' statement!"))
+        |   _ ->    raise(SyntaxError(List.head stream, "Empty token strean!"))
+       
     and parseWhileStmt (stream : TokenStream) =
         (Node.Empty, stream )
 
