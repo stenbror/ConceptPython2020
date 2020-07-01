@@ -1799,7 +1799,52 @@ module PythonCoreParser =
         |   _ ->    raise(SyntaxError(List.head stream, "Empty token strean!"))
 
     and parseIfStmt (stream : TokenStream) =
-        (Node.Empty, stream )
+        let spanStart = getPosition stream
+        match tryToken stream with
+        |   Some(Token.PyIf( _ , _ , _ ), rest ) ->
+                let op1 = List.head stream
+                let left, rest2 = parseTest rest
+                match tryToken rest2 with
+                |   Some(Token.PyColon( _ , _ , _ ), rest3) ->
+                        let op2 = List.head rest2
+                        let right, rest4 = parseSuite rest3
+                        match tryToken rest4 with
+                        |   Some(Token.PyElif( _ , _ , _ ), _ ) ->
+                                let mutable nodes : Node List = []
+                                let mutable restAgain = rest4
+                                while   match tryToken restAgain with
+                                        |   Some(Token.PyElif( _ , _ , _ ), rest5 ) ->
+                                                let op3 = List.head restAgain
+                                                let check, rest6 = parseTest rest5
+                                                match tryToken rest6 with
+                                                |   Some(Token.PyColon( _ , _ , _ ), rest7) ->
+                                                        let op4 = List.head rest6
+                                                        let nodePart, rest8 = parseSuite rest7
+                                                        nodes <- Node.ElifStmt(spanStart, getPosition(rest8), op3, check, op4, nodePart) :: nodes
+                                                        restAgain <- rest8
+                                                |   Some( _ , _ ) ->    raise (SyntaxError(List.head rest6, "Expecting ':' in elif statement!"))
+                                                |   _ ->    raise (SyntaxError(List.head stream, "Empty token stream!"))
+                                                true
+                                        |   Some( _ , _ ) ->  false
+                                        |   _ ->    raise (SyntaxError(List.head stream, "Empty token stream!"))
+                                    do ()
+                                match tryToken restAgain with
+                                |   Some(Token.PyElse( _ , _ , _ ), _ ) ->
+                                        let next, rest10 = parseElseStmt restAgain
+                                        (Node.IfStmt(spanStart, getPosition(rest10), op1, left, op2, right, List.toArray(List.rev nodes), next), rest10)
+                                |   Some( _ , _ ) ->
+                                        (Node.IfStmt(spanStart, getPosition(restAgain), op1, left, op2, right, List.toArray(List.rev nodes), Node.Empty), restAgain)
+                                |   _ ->    raise (SyntaxError(List.head restAgain, "Empty token stream!"))
+                        |   Some(Token.PyElse( _ , _ , _ ), _ ) ->
+                                let node, rest5 = parseElseStmt rest4
+                                (Node.IfStmt(spanStart, getPosition(rest5), op1, left, op2, right, [| |], node), rest5)
+                        |   Some( _ , _ ) ->
+                                (Node.IfStmt(spanStart, getPosition(rest4), op1, left, op2, right, [| |], Node.Empty), rest4)
+                        |   _ ->    raise (SyntaxError(List.head stream, "Empty token stream!"))
+                |   Some( _ , _ ) ->    raise (SyntaxError(List.head rest2, "Expecting ':' in if statement!"))
+                |   _ ->    raise (SyntaxError(List.head stream, "Empty token stream!"))
+        |   Some( _ , _ ) ->    raise (SyntaxError(List.head stream, "Expecting 'if' in if statement!"))
+        |   _ ->    raise (SyntaxError(List.head stream, "Empty token stream!"))
 
     and parseElseStmt (stream : TokenStream) =
         let spanStart = getPosition stream
