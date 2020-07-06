@@ -1862,7 +1862,28 @@ module PythonCoreParser =
         |   _ ->    raise(SyntaxError(List.head stream, "Empty token strean!"))
        
     and parseWhileStmt (stream : TokenStream) =
-        (Node.Empty, stream )
+        let spanStart = getPosition stream
+        match tryToken stream with
+        |   Some(Token.PyWhile( _ , _ , _ ), rest ) ->
+                let op1 = List.head stream
+                let left, rest2 = parseNamedExpr rest
+                match tryToken rest2 with
+                |   Some(Token.PyColon( _ , _ , _ ), rest3) ->
+                        let op2 = List.head rest2
+                        let right, rest4 = parseSuite rest3
+                        match tryToken rest4 with
+                        |   Some(Token.PyElse( _ , _ , _ ), _ ) ->
+                                let next, rest5 = parseElseStmt rest4
+                                (Node.WhileStmt(spanStart, getPosition(rest5), op1, left, op2, right, next), rest5)
+                        |   Some( _ , _ ) ->
+                                (Node.WhileStmt(spanStart, getPosition(rest4), op1, left, op2, right, Node.Empty), rest4)
+                        |   _   ->  raise (SyntaxError(List.head stream, "Empty token stream!"))
+                |   Some ( _ , _ ) ->
+                        raise (SyntaxError(List.head stream, "Expecting ':' in while statement!"))
+                |   _   ->  raise (SyntaxError(List.head stream, "Empty token stream!"))
+        |   Some ( _ , _ ) ->
+                raise (SyntaxError(List.head stream, "Expecting 'while' in while statement!"))
+        |   _   ->  raise (SyntaxError(List.head stream, "Empty token stream!"))
 
     and parseForStmt (stream : TokenStream) =
         (Node.Empty, stream )
