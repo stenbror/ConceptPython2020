@@ -1930,7 +1930,19 @@ module PythonCoreParser =
         (Node.Empty, stream )
 
     and parseWithItem (stream : TokenStream) =
-        (Node.Empty, stream )
+        let spanStart = getPosition stream
+        match tryToken stream with
+        |   Some( _ , _ ) ->
+                let left, rest = parseTest stream
+                match tryToken rest with
+                |   Some(Token.PyAs( _, _ , _ ), rest2) ->
+                        let op = List.head rest
+                        let right, rest3 = parseExpr rest2
+                        (Node.WithItem(spanStart, getPosition(rest3), left, op, right), rest3)
+                |   Some( _ , _ ) ->
+                        (Node.WithItem(spanStart, getPosition(rest), left, Token.Empty, Node.Empty), rest)
+                |   _ ->    raise (SyntaxError(List.head stream, "Empty token stream!"))
+        |   _ ->    raise (SyntaxError(List.head stream, "Empty token stream!"))
 
     and parseSuite (stream : TokenStream) =
         (Node.Empty, stream )
