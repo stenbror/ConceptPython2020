@@ -1886,7 +1886,36 @@ module PythonCoreParser =
         |   _   ->  raise (SyntaxError(List.head stream, "Empty token stream!"))
 
     and parseForStmt (stream : TokenStream) =
-        (Node.Empty, stream )
+        let spanStart = getPosition stream
+        match tryToken stream with
+        |   Some(Token.PyFor( _ , _ , _ ), rest) ->
+                let op1 = List.head stream
+                let left, rest2 = parseExprList rest
+                match tryToken rest2 with
+                |   Some(Token.PyIn( _ , _ , _ ), rest3) ->
+                        let op2 = List.head rest2
+                        let right, rest4 = parseTestList rest3
+                        match tryToken rest4 with
+                        |   Some(Token.PyColon( _ , _ , _ ), rest5) ->
+                                let op3 = List.head rest4
+                                let tc, rest6   =   Node.Empty, rest5   // This will be replaced by TypeComment parsing later!
+                                let next, rest7 = parseSuite rest6
+                                match tryToken rest7 with
+                                |   Some(Token.PyElse( _ , _ , _ ), _ ) ->
+                                        let next2, rest8 = parseElseStmt rest7
+                                        (Node.ForStmt(spanStart, getPosition(rest8), op1, left, op2, right, op3, tc, next, next2), rest8)
+                                |   Some( _ , _ ) ->
+                                        (Node.ForStmt(spanStart, getPosition(rest7), op1, left, op2, right, op3, tc, next, Node.Empty), rest7)
+                                |   _   ->  raise (SyntaxError(List.head stream, "Empty token stream!"))
+                        |   Some ( _ , _ ) ->
+                                raise (SyntaxError(List.head stream, "Expecting ':' in for statement!"))
+                        |   _   ->  raise (SyntaxError(List.head stream, "Empty token stream!"))
+                |   Some ( _ , _ ) ->
+                    raise (SyntaxError(List.head stream, "Expecting 'in' in for statement!"))
+                |   _   ->  raise (SyntaxError(List.head stream, "Empty token stream!"))
+        |   Some ( _ , _ ) ->
+                raise (SyntaxError(List.head stream, "Expecting 'for' in for statement!"))
+        |   _   ->  raise (SyntaxError(List.head stream, "Empty token stream!"))
 
     and parseTryStmt (stream : TokenStream) =
         (Node.Empty, stream )
