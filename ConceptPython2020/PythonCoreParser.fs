@@ -1924,7 +1924,21 @@ module PythonCoreParser =
         (Node.Empty, stream )
 
     and parseFinallyStmt (stream : TokenStream) =
-        (Node.Empty, stream )
+        let spanStart = getPosition stream
+        match tryToken stream with
+        |   Some(Token.PyFinally( _ , _ , _ ), rest) ->
+                let op1 = List.head stream
+                match tryToken rest with
+                |   Some(Token.PyColon( _ , _ , _ ), rest2) ->
+                        let op2 = List.head rest
+                        let node, rest3 = parseSuite rest2
+                        (Node.Finally(spanStart, getPosition(rest3), op1, op2, node), rest3)
+                |   Some ( _ , _ ) ->
+                        raise (SyntaxError(List.head stream, "Expecting ':' in finally statement!"))
+                |   _   ->  raise (SyntaxError(List.head stream, "Empty token stream!"))
+        |   Some ( _ , _ ) ->
+                raise (SyntaxError(List.head stream, "Expecting 'finally' in try/finally statement!"))
+        |   _   ->  raise (SyntaxError(List.head stream, "Empty token stream!"))
 
     and parseWithStmt (stream : TokenStream) =
         let spanStart = getPosition stream
