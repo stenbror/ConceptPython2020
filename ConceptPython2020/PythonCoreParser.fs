@@ -1927,7 +1927,40 @@ module PythonCoreParser =
         (Node.Empty, stream )
 
     and parseWithStmt (stream : TokenStream) =
-        (Node.Empty, stream )
+        let spanStart = getPosition stream
+        match tryToken stream with
+        |   Some(Token.PyWith( _ , _ , _ ), rest) ->
+                let op1 = List.head stream
+                let mutable nodes : Node list = []
+                let mutable separators : Token list = []
+                let mutable restAgain = rest
+                let node, rest2 = parseWithItem restAgain
+                nodes <- node :: nodes
+                restAgain <- rest2
+                while   match tryToken restAgain with
+                        |   Some(Token.PyComma( _ , _ , _ ), rest3) ->
+                                separators <- List.head restAgain :: separators
+                                restAgain <- rest3
+                                let node, rest4 = parseWithItem restAgain
+                                nodes <- node :: nodes
+                                restAgain <- rest4
+                                true
+                        |   Some ( _ , _ ) ->   false
+                        |   _ ->    raise (SyntaxError(List.head stream, "Empty token stream!"))
+                    do ()
+                match tryToken restAgain with
+                |   Some(Token.PyColon( _ , _ , _ ), rest5) ->
+                        let op2 = List.head restAgain
+                        let tc, rest6   =   Node.Empty, rest5   // This will be replaced by TypeComment parsing later!
+                        let suite, rest7 = parseSuite rest6
+                        restAgain <- rest7
+                        (Node.WithStmt(spanStart, getPosition(restAgain), op1, List.toArray(List.rev nodes), List.toArray(List.rev separators), op2, tc, suite), restAgain)
+                |   Some ( _ , _ ) ->
+                        raise (SyntaxError(List.head stream, "Expecting ':' in with statement!"))
+                |   _ ->    raise (SyntaxError(List.head stream, "Empty token stream!"))
+        |   Some ( _ , _ ) ->
+                raise (SyntaxError(List.head stream, "Expecting 'with' in with statement!"))
+        |   _ ->    raise (SyntaxError(List.head stream, "Empty token stream!"))
 
     and parseWithItem (stream : TokenStream) =
         let spanStart = getPosition stream
