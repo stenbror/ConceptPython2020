@@ -120,7 +120,7 @@ module PythonCoreParser =
         |   ForStmt of uint32 * uint32 * Token * Node * Token * Node * Token * Node * Node * Node
         |   TryStmt of uint32 * uint32 * Token * Token * Node * Node array * Node * Node
         |   ExceptStmt of uint32 * uint32 * Node * Token * Node
-        |   ExceptClause of uint32 * uint32 * Token * Node * Token * Node
+        |   ExceptClause of uint32 * uint32 * Token * Node * Token * Token
         |   Finally of uint32 * uint32 * Token * Token * Node
         |   WithStmt of uint32 * uint32 * Token * Node array * Token array * Token * Node * Node
         |   WithItem of uint32 * uint32 * Node * Token * Node
@@ -1921,7 +1921,30 @@ module PythonCoreParser =
         (Node.Empty, stream )
 
     and parseExceptClauseStmt (stream : TokenStream) =
-        (Node.Empty, stream )
+        let spanStart = getPosition stream
+        match tryToken stream with
+        |   Some(Token.PyExcept( _ , _ , _ ), rest) ->
+                let op1 = List.head stream
+                match tryToken rest with
+                |   Some(Token.PyColon( _ , _ , _ ), _ ) ->
+                        (Node.ExceptClause(spanStart, getPosition(rest), op1, Node.Empty, Token.Empty, Token.Empty), rest)
+                |   Some( _ , _ ) ->
+                        let left, rest2 = parseTest rest
+                        match tryToken rest2 with
+                        |   Some(Token.PyAs( _ , _ , _ ), rest3) ->
+                                let op2 = List.head rest2
+                                match tryToken rest3 with
+                                |   Some(Token.Name( _ , _ , _ , _), rest4) ->
+                                        let op3 = List.head rest3
+                                        (Node.ExceptClause(spanStart, getPosition(rest), op1, left, op2, op3), rest4)
+                                |   Some( _ , _ ) ->    raise (SyntaxError(List.head rest3, "Expecting NAME literal in exception statement after 'as'!"))
+                                |   _   ->  raise (SyntaxError(List.head stream, "Empty token stream!"))
+                        |   Some( _ , _ ) ->
+                                (Node.ExceptClause(spanStart, getPosition(rest), op1, left, Token.Empty, Token.Empty), rest2)
+                        |   _   ->  raise (SyntaxError(List.head stream, "Empty token stream!"))
+                |   _   ->  raise (SyntaxError(List.head stream, "Empty token stream!"))
+        |   Some( _ , _ ) ->    raise (SyntaxError(List.head stream, "Expecting 'except' in except statement!"))
+        |   _   ->  raise (SyntaxError(List.head stream, "Empty token stream!"))
 
     and parseFinallyStmt (stream : TokenStream) =
         let spanStart = getPosition stream
