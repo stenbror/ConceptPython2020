@@ -2054,7 +2054,47 @@ module PythonCoreParser =
         (Node.Empty, stream )
 
     and parseClassDef (stream : TokenStream) =
-        (Node.Empty, stream )
+        let spanStart = getPosition stream
+        match tryToken stream with
+        |   Some(Token.PyClass( _ , _ , _ ), rest) ->
+                let op1 = List.head stream
+                match tryToken rest with
+                |   Some(Token.Name( _ , _ , _ , _ ), rest2) ->
+                        let name = List.head rest
+                        match tryToken rest2 with
+                        |   Some(Token.PyLeftParen( _ , _ , _ ), rest3) ->
+                                let op2 = List.head rest2
+                                let right, rest4 =  match tryToken rest3 with
+                                                    |   Some(Token.PyRightParen( _ , _ , _ ), restx) ->
+                                                            Node.Empty, rest3
+                                                    |   Some( _ , _ ) ->
+                                                            parseArgList rest3
+                                                    |   _ ->    raise (SyntaxError(List.head stream, "Empty token stream!"))
+                                let op3, rest5 =    match tryToken rest4 with
+                                                    |   Some(Token.PyRightParen( _ , _ , _ ), resty)    ->
+                                                            List.head rest4, resty
+                                                    |   Some( _ , _ ) ->    raise (SyntaxError(List.head rest4, "Expecting ')' in class declaration!"))
+                                                    |   _ ->    raise (SyntaxError(List.head stream, "Empty token stream!"))
+                                let op4, rest6 =    match tryToken rest5 with
+                                                    |   Some(Token.PyColon( _ , _ , _ ), restz) ->
+                                                            List.head rest5, restz
+                                                    |   Some( _ , _ ) ->    raise (SyntaxError(List.head rest5, "Expected ':' in class declaration!"))
+                                                    |   _ ->    raise (SyntaxError(List.head stream, "Empty token stream!"))
+                                let right, rest7 = parseSuite rest6
+                                (Node.ClassDef(spanStart, getPosition(rest7), op1, name, op2, right, op3, op4, right), rest7)
+                        |   Some( _ , _ ) ->
+                                let op4, rest6 =    match tryToken rest2 with
+                                                    |   Some(Token.PyColon( _ , _ , _ ), restz) ->
+                                                            List.head rest2, restz
+                                                    |   Some( _ , _ ) ->    raise (SyntaxError(List.head rest2, "Expected ':' in class declaration!"))
+                                                    |   _ ->    raise (SyntaxError(List.head stream, "Empty token stream!"))
+                                let right, rest7 = parseSuite rest6
+                                (Node.ClassDef(spanStart, getPosition(rest7), op1, name, Token.Empty, right, Token.Empty, op4, right), rest7)
+                        |   _ ->    raise (SyntaxError(List.head stream, "Empty token stream!"))
+                |   Some ( _ , _ ) ->   raise (SyntaxError(List.head stream, "Expecting name literal in class declaration!"))
+                |   _ ->    raise (SyntaxError(List.head stream, "Empty token stream!"))
+        |   Some ( _ , _ ) ->   raise (SyntaxError(List.head stream, "Expecting 'class' in class declaration!"))
+        |   _ ->    raise (SyntaxError(List.head stream, "Empty token stream!"))
 
     and parseFuncBodySuite (stream : TokenStream) =
         (Node.Empty, stream )
