@@ -139,7 +139,7 @@ module PythonCoreParser =
         |   VFPDef of uint32 * uint32 * Token
         |   SingleInput of uint32 * uint32 * Node * Token
         |   FileInput of uint32 * uint32 * Node array
-        |   EvalInput of uint32 * uint32 * Node * Token
+        |   EvalInput of uint32 * uint32 * Node * Token array
         |   Newline of uint32 * uint32 * Token
         |   Empty
 
@@ -2056,7 +2056,20 @@ module PythonCoreParser =
         (Node.FileInput(spanStart, getPosition(restAgain), List.toArray(List.rev nodes)), restAgain )
 
     and parseEvalInput (stream : TokenStream) =
-        (Node.Empty, stream )
+        let spanStart = getPosition stream
+        let left, rest = parseTestList stream
+        let mutable newlines : Token list = []
+        let mutable restAgain = rest
+        while   match tryToken restAgain with
+                |   Some(Token.Newline( _ , _ , _ ), rest2) ->
+                        let op1 = List.head restAgain
+                        newlines <- op1 :: newlines
+                        restAgain <- rest2
+                        true
+                |   Some( _ , _ )   ->  raise (SyntaxError(List.head restAgain, "Expecting end of stream!"))
+                |   _ ->    false
+            do ()
+        (Node.EvalInput(spanStart, getPosition(restAgain), left, List.toArray(List.rev newlines)), restAgain )
 
     and parseDecorator (stream : TokenStream) =
         let spanStart = getPosition stream
