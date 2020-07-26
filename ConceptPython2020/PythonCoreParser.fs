@@ -2027,7 +2027,35 @@ module PythonCoreParser =
         (Node.Empty, stream )
 
     and parseDecorator (stream : TokenStream) =
-        (Node.Empty, stream )
+        let spanStart = getPosition stream
+        match tryToken stream with
+        |   Some(Token.PyMatrice( _ , _ , _ ), rest) ->
+                let op1 = List.head stream
+                let left, rest2 = parseDottedNameStmt rest
+                match tryToken rest2 with
+                |   Some(Token.PyLeftParen( _ , _ , _ ), rest3) ->
+                        let op2 = List.head rest2
+                        let right, rest4 =  match tryToken rest3 with
+                                            |   Some(Token.PyRightParen( _ , _ , _ ), _ )   ->  Node.Empty, rest3
+                                            |   Some( _ , _ ) ->    parseArgList rest3
+                                            |   _ ->    raise (SyntaxError(List.head rest, "Empty token stream!"))
+                        let op3, rest5 =    match tryToken rest4 with
+                                            |   Some(Token.PyRightParen( _ , _ , _ ), restx) -> List.head rest4, restx
+                                            |   Some( _ , _ ) ->    raise(SyntaxError(List.head rest4, "Expecting ')' in decorator!"))
+                                            |   _ ->    raise (SyntaxError(List.head rest, "Empty token stream!"))
+                        match tryToken rest5 with
+                        |   Some(Token.Newline( _ , _ , _ ), rest6) ->
+                                let op4 = List.head rest5
+                                (Node.Decorator(spanStart, getPosition(rest5), op1, left, op2, right, op3, op4), rest5)
+                        |   Some( _ , _ ) ->    raise (SyntaxError(List.head rest2, "Expecting Newline after decorator!"))
+                        |   _ ->    raise (SyntaxError(List.head rest, "Empty token stream!"))
+                |   Some(Token.Newline( _, _ , _ ), rest3)   ->
+                        let op4 = List.head rest2
+                        (Node.Decorator(spanStart, getPosition(rest3), op1, left, Token.Empty, Node.Empty, Token.Empty, op4), rest3)
+                |   Some( _ , _ ) ->    raise (SyntaxError(List.head rest2, "Expecting Newline after decorator!"))
+                |   _ ->    raise (SyntaxError(List.head rest, "Empty token stream!"))
+        |   Some( _ , _ ) ->    raise (SyntaxError(List.head stream, "Expecting '@' in decorator statement!"))
+        |   _ ->    raise (SyntaxError(List.head stream, "Empty token stream!"))
 
     and parseDecorators (stream : TokenStream) =
         (Node.Empty, stream )
