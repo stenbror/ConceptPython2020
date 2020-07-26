@@ -2077,7 +2077,19 @@ module PythonCoreParser =
         |   _ ->    raise (SyntaxError(List.head restAgain, "Empty token stream!"))
 
     and parseDecorated (stream : TokenStream) =
-        (Node.Empty, stream )
+        let spanStart = getPosition stream
+        match tryToken stream with
+        |   Some(Token.PyMatrice( _ , _ , _ ), _ ) ->
+                let deco, rest = parseDecorators stream
+                let right, rest2 =  match tryToken rest with
+                                    |   Some(Token.PyClass( _ , _ , _ ), _ )    ->  parseClassDef rest
+                                    |   Some(Token.PyDef( _ , _ , _ ), _ )      ->  parseFuncDef rest
+                                    |   Some(Token.PyAsync( _ , _ , _ ), _ )    ->  parseAsyncFuncDef rest
+                                    |   Some( _ , _ )   ->  raise (SyntaxError(List.head rest, "Only 'class', 'def' and 'async' is allowed after decorator(s)"))
+                                    |   _ ->    raise (SyntaxError(List.head stream, "Empty token stream!"))                  
+                (Node.Decorated(spanStart, getPosition(rest2), deco, right), rest2 )
+        |   Some( _ , _ ) ->    raise (SyntaxError(List.head stream, "Expecting at least one decorator!"))
+        |   _ ->    raise (SyntaxError(List.head stream, "Empty token stream!"))
 
     and parseAsyncFuncDef (stream : TokenStream) =
         (Node.Empty, stream )
