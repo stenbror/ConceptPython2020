@@ -2058,7 +2058,23 @@ module PythonCoreParser =
         |   _ ->    raise (SyntaxError(List.head stream, "Empty token stream!"))
 
     and parseDecorators (stream : TokenStream) =
-        (Node.Empty, stream )
+        let spanStart = getPosition stream
+        let mutable nodes : Node list = []
+        let mutable restAgain = stream
+        match tryToken stream with
+        |   Some(Token.PyMatrice( _ , _ , _ ), _ ) ->
+                while   match tryToken restAgain with
+                        |   Some(Token.PyMatrice( _ , _ , _ ), _ )    ->
+                                let node, rest = parseDecorator restAgain
+                                nodes <- node :: nodes
+                                restAgain <- rest
+                                true
+                        |   Some( _ , _ ) ->    false
+                        |   _   ->  raise (SyntaxError(List.head restAgain, "Empty token stream!"))
+                    do ()
+                (Node.Decorators(spanStart, getPosition(restAgain), List.toArray(List.rev nodes)), restAgain)
+        |   Some( _ , _ ) ->    raise (SyntaxError(List.head restAgain, "Expecting at least one decorator!"))
+        |   _ ->    raise (SyntaxError(List.head restAgain, "Empty token stream!"))
 
     and parseDecorated (stream : TokenStream) =
         (Node.Empty, stream )
