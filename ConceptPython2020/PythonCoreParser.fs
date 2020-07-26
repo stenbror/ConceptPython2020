@@ -140,6 +140,7 @@ module PythonCoreParser =
         |   SingleInput of uint32 * uint32 * Node * Token
         |   FileInput of uint32 * uint32 * Token array * Node array
         |   EvalInput of uint32 * uint32 * Node * Token
+        |   Newline of uint32 * uint32 * Token
         |   Empty
 
     exception SyntaxError of Token * string
@@ -2018,7 +2019,22 @@ module PythonCoreParser =
         (Node.Empty, stream )
 
     and parseSingleInput (stream : TokenStream) =
-        (Node.Empty, stream )
+        let spanStart = getPosition stream
+        match tryToken stream with
+        |   Some(Token.Newline( _ , _, _ ), rest )    ->  
+                let op1 = List.head stream
+                (Node.Newline(spanStart, getPosition(rest), op1), rest)
+        |   Some(Token.PyIf( _ , _ , _ ), _ )   
+        |   Some(Token.PyWhile( _, _ , _ ), _ )
+        |   Some(Token.PyFor( _ , _ , _ ), _ )
+        |   Some(Token.PyTry( _ , _ , _ ), _ )
+        |   Some(Token.PyWith( _ , _ , _ ), _ )
+        |   Some(Token.PyMatrice( _ , _ , _ ), _ )
+        |   Some(Token.PyDef( _ , _ , _ ), _ )
+        |   Some(Token.PyClass( _ , _ , _ ), _ )
+        |   Some(Token.PyAsync( _ , _ , _ ), _ ) -> parseCompoundStmt stream
+        |   Some( _ , _ ) ->    parseSimpleStmt stream
+        |   _ ->    raise (SyntaxError(List.head stream, "Empty token stream!"))
 
     and parseFileInput (stream : TokenStream) =
         (Node.Empty, stream )
