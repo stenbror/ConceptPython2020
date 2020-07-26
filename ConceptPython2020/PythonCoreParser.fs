@@ -138,7 +138,7 @@ module PythonCoreParser =
         |   VarArgAssign of uint32 * uint32 * Node * Token * Node
         |   VFPDef of uint32 * uint32 * Token
         |   SingleInput of uint32 * uint32 * Node * Token
-        |   FileInput of uint32 * uint32 * Token array * Node array
+        |   FileInput of uint32 * uint32 * Node array
         |   EvalInput of uint32 * uint32 * Node * Token
         |   Newline of uint32 * uint32 * Token
         |   Empty
@@ -2037,7 +2037,23 @@ module PythonCoreParser =
         |   _ ->    raise (SyntaxError(List.head stream, "Empty token stream!"))
 
     and parseFileInput (stream : TokenStream) =
-        (Node.Empty, stream )
+        let spanStart = getPosition stream
+        let mutable nodes : Node list = []
+        let mutable restAgain = stream
+        while   match tryToken restAgain with
+                |   Some(Token.Newline( _ , _ , _ ), rest)  ->
+                        let op1 = List.head restAgain
+                        nodes <- Node.Newline(spanStart, getPosition(rest), op1) :: nodes
+                        restAgain <- rest
+                        true
+                |   Some( _ , _ )   ->
+                        let node, rest = parseStmt restAgain
+                        nodes <- node :: nodes
+                        restAgain <- rest
+                        true
+                |   _ ->    false
+            do ()
+        (Node.FileInput(spanStart, getPosition(restAgain), List.toArray(List.rev nodes)), restAgain )
 
     and parseEvalInput (stream : TokenStream) =
         (Node.Empty, stream )
