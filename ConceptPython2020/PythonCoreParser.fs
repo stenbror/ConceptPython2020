@@ -124,7 +124,7 @@ module PythonCoreParser =
         |   Finally of uint32 * uint32 * Token * Token * Node
         |   WithStmt of uint32 * uint32 * Token * Node array * Token array * Token * Node * Node
         |   WithItem of uint32 * uint32 * Node * Token * Node
-        |   Suite of uint32 * uint32 * Token * Token * Node * Token
+        |   Suite of uint32 * uint32 * Token * Token * Node array * Token
         |   Decorator of uint32 * uint32 * Token * Node * Token * Node * Token * Token
         |   Decorators of uint32 * uint32 * Node array
         |   Decorated of uint32 * uint32 * Node * Node
@@ -2016,7 +2016,38 @@ module PythonCoreParser =
         |   _ ->    raise (SyntaxError(List.head stream, "Empty token stream!"))
 
     and parseSuite (stream : TokenStream) =
-        (Node.Empty, stream )
+        let spanStart = getPosition stream
+        match tryToken stream with
+        |   Some(Token.Newline( _ , _ , _ ), rest)  ->
+                let op1 = List.head stream
+                let mutable nodes : Node list = []
+                match tryToken rest with
+                |   Some(Token.Indent, rest2)  ->
+                        let op2 = List.head rest
+                        let mutable restAgain = rest2
+                        match tryToken restAgain with | Some(Token.Dedent, _ ) ->    raise (SyntaxError(List.head restAgain, "Expecting statement(s) in suite!"))    | _ ->  ()
+                        while   match tryToken restAgain with
+                                |   Some( Token.Dedent, rest3) ->  false
+                                |   Some( _ , _ )   ->
+                                        let node, rest5 = parseStmt restAgain
+                                        nodes <- node :: nodes
+                                        restAgain <- rest5
+                                        true
+                                |   _   ->  raise (SyntaxError(List.head stream, "Empty token stream!"))
+                            do ()
+                        let op3 =   match tryToken restAgain with
+                                    |   Some(Token.Dedent, rest4)   ->
+                                            let op = List.head restAgain
+                                            restAgain <- rest4
+                                            op
+                                    |   _ ->    Token.Empty
+                        (Node.Suite(spanStart, getPosition(restAgain), op1, op2, List.toArray(List.rev nodes), op3), restAgain)
+                |   Some( _ , _ ) ->    raise (SyntaxError(List.head rest, "Expecting indent in suite!"))
+                |   _ ->    raise (SyntaxError(List.head stream, "Empty token stream!"))
+        |   Some( _ , _ ) ->
+                let node, rest = parseSimpleStmt stream
+                (node, rest)
+        |   _ ->    raise (SyntaxError(List.head stream, "Empty token stream!"))
 
     and parseSingleInput (stream : TokenStream) =
         let spanStart = getPosition stream
