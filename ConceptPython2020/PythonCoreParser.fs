@@ -1928,16 +1928,9 @@ module PythonCoreParser =
                         let op2 = List.head rest
                         let left, rest3 = parseSuite rest2
                         match tryToken rest3 with
-                        |   Some(Token.PyFinally( _ , _ , _ ), rest4)   ->
-                                let spanStart2 = getPosition rest3
-                                let op3 = List.head rest3
-                                match tryToken rest4 with
-                                |   Some(Token.PyColon( _ , _ , _ ), rest5) ->
-                                        let op4 = List.head rest3
-                                        let right, rest6 = parseSuite rest5
-                                        (Node.TryStmt(spanStart, getPosition(rest6), op1, op2, left, Array.empty, Node.Empty, Node.Finally(spanStart2, getPosition(rest6), op3, op4, right)), rest6)
-                                |   Some( _ , _ )   ->  raise (SyntaxError(List.head rest3, "Expecting ':' in try statement!"))
-                                |   _   ->  raise (SyntaxError(List.head rest3, "Empty token stream!"))
+                        |   Some(Token.PyFinally( _ , _ , _ ), _ )   ->
+                                let node, rest4 = parseFinallyStmt rest3
+                                (Node.TryStmt(spanStart, getPosition(rest4), op1, op2, left, Array.empty, Node.Empty, node), rest4) 
                         |   Some(Token.PyExcept( _ , _ , _ ) , rest7 ) ->
                                 let mutable nodes : Node list = []
                                 let mutable restAgain = rest3
@@ -1958,17 +1951,10 @@ module PythonCoreParser =
                                                 |   Some( _ , _ ) ->    Node.Empty
                                                 |   _ ->    raise (SyntaxError(List.head restAgain, "Empty token stream!"))
                                 let finPart =   match tryToken restAgain with
-                                                |   Some(Token.PyFinally( _ , _ , _ ), rest20)  ->
-                                                        let spanStart3 = getPosition restAgain
-                                                        let op10 = List.head restAgain
-                                                        match tryToken rest20 with
-                                                        |   Some(Token.PyColon( _ , _ , _ ), rest21)    ->
-                                                                let op11 = List.head rest20
-                                                                let node, rest22 = parseSuite rest21
-                                                                restAgain <- rest22
-                                                                Node.Finally(spanStart3, getPosition(restAgain), op10, op11, node)
-                                                        |   Some( _ , _ )   ->  raise (SyntaxError(List.head rest20, "Expecting ':' in finally statement!"))
-                                                        |   _   ->  raise (SyntaxError(List.head rest20, "Empty token stream!"))
+                                                |   Some(Token.PyFinally( _ , _ , _ ), _ )  ->
+                                                        let node, rest4 = parseFinallyStmt restAgain
+                                                        restAgain <- rest4
+                                                        node
                                                 |   Some( _, _ )    ->  Node.Empty
                                                 |   _   ->  raise (SyntaxError(List.head stream, "Empty token stream!"))
                                 (Node.TryStmt(spanStart, getPosition(restAgain), op1, op2, left, List.toArray(List.rev nodes), elsePart, finPart), restAgain)
